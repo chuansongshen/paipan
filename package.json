@@ -12,6 +12,8 @@
     "electron:dev": "concurrently \"npm run dev\" \"wait-on tcp:5173 && electron .\""
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "antd": "^6.1.2",
     "classnames": "^2.5.1",
     "dayjs": "^1.11.19",
     "lunar-javascript": "^1.7.7",

@@ -138,13 +138,16 @@ function App() {
       text += `月将: ${panData.yueJiang}  空亡: ${panData.kongWang}\n\n`;
       
       text += `【三传】\n`;
-      text += `初传: ${panData.sanChuan[0]?.gan}${panData.sanChuan[0]?.zhi}\n`;
-      text += `中传: ${panData.sanChuan[1]?.gan}${panData.sanChuan[1]?.zhi}\n`;
-      text += `末传: ${panData.sanChuan[2]?.gan}${panData.sanChuan[2]?.zhi}\n\n`;
+      text += `初传: ${panData.sanChuan[0]?.gan}${panData.sanChuan[0]?.zhi} (${panData.tianJiang?.[panData.sanChuan[0]?.zhi] || '-'})\n`;
+      text += `中传: ${panData.sanChuan[1]?.gan}${panData.sanChuan[1]?.zhi} (${panData.tianJiang?.[panData.sanChuan[1]?.zhi] || '-'})\n`;
+      text += `末传: ${panData.sanChuan[2]?.gan}${panData.sanChuan[2]?.zhi} (${panData.tianJiang?.[panData.sanChuan[2]?.zhi] || '-'})\n\n`;
       
       text += `【四课】\n`;
-      text += `${panData.siKe.fourth.gan} ${panData.siKe.third.gan} ${panData.siKe.second.gan} ${panData.siKe.first.gan}\n`;
-      text += `${panData.siKe.fourth.zhi} ${panData.siKe.third.zhi} ${panData.siKe.second.zhi} ${panData.siKe.first.zhi}\n\n`;
+      // 神将行
+      text += `${panData.tianJiang?.[panData.siKe.fourth.zhi] || '-'} ${panData.tianJiang?.[panData.siKe.third.zhi] || '-'} ${panData.tianJiang?.[panData.siKe.second.zhi] || '-'} ${panData.tianJiang?.[panData.siKe.first.zhi] || '-'}\n`;
+      // 调整顺序：zhi在上，gan在下
+      text += `${panData.siKe.fourth.zhi} ${panData.siKe.third.zhi} ${panData.siKe.second.zhi} ${panData.siKe.first.zhi}\n`;
+      text += `${panData.siKe.fourth.gan} ${panData.siKe.third.gan} ${panData.siKe.second.gan} ${panData.siKe.first.gan}\n\n`;
       
       text += `【天地盘】\n`;
       // Output tian pan, di pan, and tian jiang in a table format

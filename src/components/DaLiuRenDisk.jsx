@@ -116,21 +116,25 @@ const DaLiuRenDisk = ({ data }) => {
             <div className="grid grid-cols-4 gap-2 text-center">
               <div className="flex flex-col gap-1">
                 <div className="text-xs text-gray-400">第四课</div>
+                <div className="text-xs text-purple-600">{tianJiang[siKe.fourth.zhi] || '-'}</div>
                 <div className="font-bold text-lg">{siKe.fourth.zhi}</div>
                 <div className="font-medium text-gray-600">{siKe.fourth.gan}</div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-xs text-gray-400">第三课</div>
+                <div className="text-xs text-purple-600">{tianJiang[siKe.third.zhi] || '-'}</div>
                 <div className="font-bold text-lg">{siKe.third.zhi}</div>
                 <div className="font-medium text-gray-600">{siKe.third.gan}</div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-xs text-gray-400">第二课</div>
+                <div className="text-xs text-purple-600">{tianJiang[siKe.second.zhi] || '-'}</div>
                 <div className="font-bold text-lg">{siKe.second.zhi}</div>
                 <div className="font-medium text-gray-600">{siKe.second.gan}</div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-xs text-gray-400">第一课</div>
+                <div className="text-xs text-purple-600">{tianJiang[siKe.first.zhi] || '-'}</div>
                 <div className="font-bold text-lg">{siKe.first.zhi}</div>
                 <div className="font-medium text-gray-600">{siKe.first.gan}</div>
               </div>
