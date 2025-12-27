@@ -208,7 +208,7 @@ export const getDaLiuRenPaiPan = (date, birthYear, gender = '男') => {
   const hourZhi = hourGanZhi.substring(1, 2);
 
   // 2. Determine Yue Jiang
-  const prevJieQi = lunar.getPrevJieQi(true);
+  const prevJieQi = lunar.getPrevJieQi(false);
   const prevJieQiName = prevJieQi.getName();
   const yueJiang = getYueJiangFromTerm(prevJieQiName);
 

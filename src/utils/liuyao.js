@@ -140,10 +140,10 @@ export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null) {
     dateStr: date.toLocaleString(),
     lunarStr: lunar.toString(),
     ganZhi: {
-      year: lunar.getYearInGanZhi(),
-      month: lunar.getMonthInGanZhi(),
-      day: dayGanZhi,
-      hour: hourGanZhi
+      year: lunar.getYearInGanZhiExact(),
+      month: lunar.getMonthInGanZhiExact(),
+      day: lunar.getDayInGanZhiExact(),
+      hour: lunar.getTimeInGanZhi()
     },
     benGua,
     bianGua,

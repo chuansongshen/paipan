@@ -26,7 +26,7 @@ export const calculateJu = (date, method = 'chaibu') => {
   // lunar-javascript's getJieQi() returns the *current* JieQi name if today is the day, or empty?
   // We need the JieQi that the current moment belongs to.
   // Lunar.getPrevJieQi(true) might be useful.
-  const prevJieQi = lunar.getPrevJieQi(true); // true = include today
+  const prevJieQi = lunar.getPrevJieQi(false); // false = respect exact time transition
   const jieQiName = prevJieQi.getName();
   
   // 2. Determine Yuan (Upper/Middle/Lower)
