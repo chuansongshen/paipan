@@ -8,7 +8,19 @@ import DaLiuRenDisk from './components/DaLiuRenDisk';
 import LiuYaoDisk from './components/LiuYaoDisk';
 import BaZiDisk from './components/BaZiDisk';
 import dayjs from 'dayjs';
+import { 
+  ConfigProvider, Layout, Typography, Segmented, DatePicker, 
+  Radio, InputNumber, Button, Card, Space, message 
+} from 'antd';
+import { CopyOutlined } from '@ant-design/icons';
+import zhCN from 'antd/locale/zh_CN';
+import 'dayjs/locale/zh-cn';
 import './index.css';
+
+dayjs.locale('zh-cn');
+
+const { Content } = Layout;
+const { Title } = Typography;
 
 const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const getZhiIdx = (z) => ZHI.indexOf(z);
@@ -41,10 +53,10 @@ class ErrorBoundary extends React.Component {
 }
 
 function App() {
-  const [date, setDate] = useState(dayjs().format('YYYY-MM-DDTHH:mm'));
+  const [date, setDate] = useState(dayjs());
   const [method, setMethod] = useState('chaibu');
   const [appMode, setAppMode] = useState('qimen'); // 'qimen', 'daliuren', 'liuyao', 'bazi'
-  const [birthYear, setBirthYear] = useState('2000');
+  const [birthYear, setBirthYear] = useState(2000);
   const [gender, setGender] = useState('男'); // '男' or '女'
   const [panData, setPanData] = useState(null);
   
@@ -58,17 +70,17 @@ function App() {
 
   const calculate = () => {
     try {
-      const d = new Date(date);
+      const d = date.toDate();
       let data;
       if (appMode === 'qimen') {
         data = getPaiPan(d, method);
       } else if (appMode === 'daliuren') {
         console.log("Calculating Da Liu Ren for:", d, birthYear, gender);
-        data = getDaLiuRenPaiPan(d, parseInt(birthYear) || 2000, gender);
+        data = getDaLiuRenPaiPan(d, birthYear || 2000, gender);
       } else if (appMode === 'liuyao') {
         console.log("Calculating Liu Yao for:", d, birthYear, liuyaoInputMode);
         const yaoInput = liuyaoInputMode === 'manual' ? manualYao : null;
-        data = getLiuYaoPaiPan(d, parseInt(birthYear) || 2000, yaoInput);
+        data = getLiuYaoPaiPan(d, birthYear || 2000, yaoInput);
       } else if (appMode === 'bazi') {
         console.log("Calculating Ba Zi for:", d, gender);
         // For Ba Zi, the selected date IS the birth date, so use d.getFullYear()
@@ -287,323 +299,271 @@ function App() {
     const text = formatPanData();
     try {
       await navigator.clipboard.writeText(text);
-      alert('已复制到剪贴板');
+      message.success('已复制到剪贴板');
     } catch (err) {
       console.error('复制失败:', err);
-      alert('复制失败，请检查浏览器权限');
+      message.error('复制失败，请检查浏览器权限');
     }
   };
 
+  const modeOptions = [
+    { label: '奇门遁甲', value: 'qimen' },
+    { label: '大六壬', value: 'daliuren' },
+    { label: '六爻', value: 'liuyao' },
+    { label: '八字', value: 'bazi' }
+  ];
+
+  const getModeTitle = () => {
+    const titles = {
+      qimen: '奇门遁甲排盘',
+      daliuren: '大六壬排盘',
+      liuyao: '六爻排盘',
+      bazi: '八字排盘'
+    };
+    return titles[appMode] + (window.electron ? ' (Electron)' : ' (Web)');
+  };
+
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-100 p-[30px] flex flex-col items-center font-sans text-gray-800">
-        <h1 className="text-3xl font-bold mb-6 text-indigo-900">
-          {appMode === 'qimen' ? '奇门遁甲排盘' : appMode === 'daliuren' ? '大六壬排盘' : appMode === 'liuyao' ? '六爻排盘' : '八字排盘'} {window.electron ? '(Electron)' : '(Web)'}
-        </h1>
-        
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8 w-full max-w-2xl flex flex-col gap-6">
-          {/* Mode Selection */}
-          <div className="flex gap-4 justify-center border-b pb-4">
-            <button 
-              onClick={() => { 
-                if (appMode !== 'qimen') {
-                  setAppMode('qimen'); 
-                  setPanData(null); 
-                }
-              }}
-              className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                appMode === 'qimen' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-            >
-              奇门遁甲
-            </button>
-            <button 
-              onClick={() => { 
-                if (appMode !== 'daliuren') {
-                  setAppMode('daliuren'); 
-                  setPanData(null); 
-                }
-              }}
-              className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                appMode === 'daliuren' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-            >
-              大六壬
-            </button>
-            <button 
-              onClick={() => { 
-                if (appMode !== 'liuyao') {
-                  setAppMode('liuyao'); 
-                  setPanData(null); 
-                }
-              }}
-              className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                appMode === 'liuyao' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-            >
-              六爻
-            </button>
-            <button 
-              onClick={() => { 
-                if (appMode !== 'bazi') {
-                  setAppMode('bazi'); 
-                  setPanData(null); 
-                }
-              }}
-              className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                appMode === 'bazi' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-            >
-              八字
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-6 items-end">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-600">日期时间</label>
-              <input 
-                type="datetime-local" 
-                value={date} 
-                onChange={(e) => setDate(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        token: {
+          colorPrimary: '#4f46e5',
+          borderRadius: 8,
+        },
+      }}
+    >
+      <ErrorBoundary>
+        <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+          <Content style={{ padding: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Title level={2} style={{ color: '#312e81', marginBottom: 24 }}>
+              {getModeTitle()}
+            </Title>
             
-            {appMode === 'qimen' ? (
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-600">定局方式</label>
-                <div className="flex gap-4 bg-gray-50 p-2 rounded border border-gray-200">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="method" 
-                      value="chaibu" 
-                      checked={method === 'chaibu'} 
-                      onChange={() => setMethod('chaibu')}
-                      className="text-indigo-600"
-                    />
-                    <span>拆补法</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="method" 
-                      value="zhirun" 
-                      checked={method === 'zhirun'} 
-                      onChange={() => setMethod('zhirun')}
-                      className="text-indigo-600"
-                    />
-                    <span>置润法</span>
-                  </label>
+            <Card style={{ width: '100%', maxWidth: 800, marginBottom: 24 }}>
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                {/* Mode Selection */}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <Segmented
+                    options={modeOptions}
+                    value={appMode}
+                    onChange={(value) => {
+                      if (appMode !== value) {
+                        setAppMode(value);
+                        setPanData(null);
+                      }
+                    }}
+                    size="large"
+                  />
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-gray-600">求测人信息</label>
-                  <div className="flex gap-2 items-center">
-                    {appMode !== 'bazi' && (
-                      <input 
-                        type="number" 
-                        value={birthYear} 
-                        onChange={(e) => setBirthYear(e.target.value)}
-                        placeholder="例如: 2000"
-                        className="border border-gray-300 rounded px-3 py-2 w-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    )}
-                    <div className="flex bg-gray-50 rounded border border-gray-200 p-1">
-                      <button
-                        onClick={() => setGender('男')}
-                        className={`px-3 py-1 rounded text-sm transition-colors ${gender === '男' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+
+                {/* Controls */}
+                <Space wrap size="middle" style={{ width: '100%' }}>
+                  <Space direction="vertical" size="small">
+                    <span style={{ fontSize: 12, color: '#666' }}>日期时间</span>
+                    <DatePicker
+                      showTime
+                      value={date}
+                      onChange={(value) => value && setDate(value)}
+                      format="YYYY-MM-DD HH:mm"
+                      allowClear={false}
+                    />
+                  </Space>
+                  
+                  {appMode === 'qimen' ? (
+                    <Space direction="vertical" size="small">
+                      <span style={{ fontSize: 12, color: '#666' }}>定局方式</span>
+                      <Radio.Group 
+                        value={method} 
+                        onChange={(e) => setMethod(e.target.value)}
+                        optionType="button"
+                        buttonStyle="solid"
                       >
-                        男
-                      </button>
-                      <button
-                        onClick={() => setGender('女')}
-                        className={`px-3 py-1 rounded text-sm transition-colors ${gender === '女' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                        <Radio.Button value="chaibu">拆补法</Radio.Button>
+                        <Radio.Button value="zhirun">置润法</Radio.Button>
+                      </Radio.Group>
+                    </Space>
+                  ) : (
+                    <>
+                      {appMode !== 'bazi' && (
+                        <Space direction="vertical" size="small">
+                          <span style={{ fontSize: 12, color: '#666' }}>出生年份</span>
+                          <InputNumber
+                            value={birthYear}
+                            onChange={(value) => setBirthYear(value || 2000)}
+                            min={1900}
+                            max={2100}
+                            style={{ width: 100 }}
+                          />
+                        </Space>
+                      )}
+                      <Space direction="vertical" size="small">
+                        <span style={{ fontSize: 12, color: '#666' }}>性别</span>
+                        <Radio.Group 
+                          value={gender} 
+                          onChange={(e) => setGender(e.target.value)}
+                          optionType="button"
+                          buttonStyle="solid"
+                        >
+                          <Radio.Button value="男">男</Radio.Button>
+                          <Radio.Button value="女">女</Radio.Button>
+                        </Radio.Group>
+                      </Space>
+                    </>
+                  )}
 
-                      >
-                        女
-                      </button>
-                    </div>
+                  {appMode === 'liuyao' && (
+                    <>
+                      <Space direction="vertical" size="small">
+                        <span style={{ fontSize: 12, color: '#666' }}>起卦方式</span>
+                        <Radio.Group 
+                          value={liuyaoInputMode} 
+                          onChange={(e) => setLiuyaoInputMode(e.target.value)}
+                          optionType="button"
+                          buttonStyle="solid"
+                        >
+                          <Radio.Button value="time">正时起卦</Radio.Button>
+                          <Radio.Button value="manual">手动起卦</Radio.Button>
+                        </Radio.Group>
+                      </Space>
+                    </>
+                  )}
+                  
+                  <Button 
+                    type="primary" 
+                    icon={<CopyOutlined />}
+                    onClick={copyToClipboard}
+                    style={{ alignSelf: 'flex-end' }}
+                  >
+                    复制排盘
+                  </Button>
+                </Space>
+
+                {/* Manual Yao Selection for Liu Yao */}
+                {appMode === 'liuyao' && liuyaoInputMode === 'manual' && (
+                  <div>
+                    <span style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8 }}>
+                      手动指定六爻 (从下到上)
+                    </span>
+                    <Space>
+                      {[1, 2, 3, 4, 5, 6].map(position => {
+                        const idx = position - 1;
+                        return (
+                          <Space key={position} direction="vertical" size="small" align="center">
+                            <span style={{ fontSize: 12, color: '#999' }}>{position}爻</span>
+                            <Radio.Group
+                              value={manualYao[idx]}
+                              onChange={(e) => {
+                                const newYao = [...manualYao];
+                                newYao[idx] = e.target.value;
+                                setManualYao(newYao);
+                              }}
+                              size="small"
+                            >
+                              <Space direction="vertical" size={0}>
+                                <Radio value={9}>老阳</Radio>
+                                <Radio value={7}>少阳</Radio>
+                                <Radio value={6}>老阴</Radio>
+                                <Radio value={8}>少阴</Radio>
+                              </Space>
+                            </Radio.Group>
+                          </Space>
+                        );
+                      })}
+                    </Space>
                   </div>
-                </div>
-              </div>
+                )}
+              </Space>
+            </Card>
 
-            )}
-            {appMode === 'liuyao' && (
-                  <>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-600">起卦方式</label>
-                      <div className="flex gap-4 bg-gray-50 p-2 rounded border border-gray-200">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
-                            type="radio" 
-                            name="liuyaoMode" 
-                            value="time" 
-                            checked={liuyaoInputMode === 'time'} 
-                            onChange={() => setLiuyaoInputMode('time')}
-                            className="text-indigo-600"
-                          />
-                          <span>正时起卦</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
-                            type="radio" 
-                            name="liuyaoMode" 
-                            value="manual" 
-                            checked={liuyaoInputMode === 'manual'} 
-                            onChange={() => setLiuyaoInputMode('manual')}
-                            className="text-indigo-600"
-                          />
-                          <span>手动起卦</span>
-                        </label>
+            {/* Disk Display */}
+            <div style={{ width: '100%', maxWidth: 1200 }}>
+              {appMode === 'qimen' ? (
+                <>
+                  {/* Qimen Info Panel */}
+                  <Card title="局象信息" style={{ marginBottom: 24 }}>
+                    {panData && !panData.error ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, fontSize: 14 }}>
+                        <div><span style={{ color: '#666' }}>节气:</span> <strong>{panData.jieQi}</strong></div>
+                        <div><span style={{ color: '#666' }}>年柱:</span> <strong>{panData.yearGanZhi}</strong></div>
+                        <div><span style={{ color: '#666' }}>月柱:</span> <strong>{panData.monthGanZhi}</strong></div>
+                        <div><span style={{ color: '#666' }}>日柱:</span> <strong>{panData.dayGanZhi}</strong></div>
+                        <div><span style={{ color: '#666' }}>时柱:</span> <strong>{panData.hourGanZhi}</strong></div>
+                        <div><span style={{ color: '#666' }}>元遁:</span> <strong>{panData.type} {panData.yuan}</strong></div>
+                        <div><span style={{ color: '#666' }}>局数:</span> <strong>{panData.juNum} 局</strong></div>
+                        <div><span style={{ color: '#666' }}>空亡:</span> <strong>{panData.dayXunKong} (日) / {panData.hourXunKong} (时)</strong></div>
+                        <div><span style={{ color: '#666' }}>马星:</span> <strong>{panData.maXing}</strong></div>
+                        <div><span style={{ color: '#666' }}>值符:</span> <strong>{panData.zhiFuStar}</strong></div>
+                        <div><span style={{ color: '#666' }}>值使:</span> <strong>{panData.zhiShiGate}</strong></div>
+                        <div><span style={{ color: '#666' }}>旬首:</span> <strong>{panData.xun}</strong></div>
                       </div>
-                    </div>
-                    
-                    {liuyaoInputMode === 'manual' && (
-                      <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-600">手动指定六爻 (从下到上)</label>
-                        <div className="grid grid-cols-6 gap-2">
-                          {[1, 2, 3, 4, 5, 6].map(position => {
-                            const idx = position - 1;
-                            const yaoNames = {9: '老阳', 7: '少阳', 6: '老阴', 8: '少阴'};
-                            return (
-                              <div key={position} className="flex flex-col gap-1">
-                                <span className="text-xs text-gray-500 text-center">{position}爻</span>
-                                <select
-                                  value={manualYao[idx]}
-                                  onChange={(e) => {
-                                    const newYao = [...manualYao];
-                                    newYao[idx] = parseInt(e.target.value);
-                                    setManualYao(newYao);
-                                  }}
-                                  className="text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                  <option value={9}>老阳</option>
-                                  <option value={7}>少阳</option>
-                                  <option value={6}>老阴</option>
-                                  <option value={8}>少阴</option>
-                                </select>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                    ) : (
+                      <div style={{ color: '#999', fontStyle: 'italic' }}>暂无数据</div>
                     )}
-                  </>
-                )}
-
-            
-            <button 
-              onClick={copyToClipboard}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-medium transition-colors"
-            >
-              复制排盘
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-8 items-center w-full max-w-5xl">
-          {appMode === 'qimen' ? (
-            <>
-              {/* Qimen Info Panel */}
-              <div className="w-full bg-white p-6 rounded-xl shadow-md space-y-4">
-                <h2 className="text-xl font-semibold border-b pb-2">局象信息</h2>
-                {panData && !panData.error ? (
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">节气:</span>
-                      <span className="font-medium">{panData.jieQi}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">年柱:</span>
-                      <span className="font-medium">{panData.yearGanZhi}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">月柱:</span>
-                      <span className="font-medium">{panData.monthGanZhi}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">日柱:</span>
-                      <span className="font-medium">{panData.dayGanZhi}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">时柱:</span>
-                      <span className="font-medium">{panData.hourGanZhi}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">元遁:</span>
-                      <span className="font-medium">{panData.type} {panData.yuan}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">局数:</span>
-                      <span className="font-medium">{panData.juNum} 局</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">空亡:</span>
-                      <span className="font-medium">{panData.dayXunKong} (日) / {panData.hourXunKong} (时)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">马星:</span>
-                      <span className="font-medium">{panData.maXing}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">值符:</span>
-                      <span className="font-medium">{panData.zhiFuStar}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">值使:</span>
-                      <span className="font-medium">{panData.zhiShiGate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">旬首:</span>
-                      <span className="font-medium">{panData.xun}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-gray-400 italic">暂无数据</div>
-                )}
-              </div>
-
-              {/* Qimen Disk */}
-              <div className="flex-1">
-                <QimenDisk data={panData} />
-              </div>
-            </>
-          ) : appMode === 'liuyao' ? (
-            /* Liu Yao Display */
-            <div className="w-full">
-              <ErrorBoundary>
-                <LiuYaoDisk data={panData} />
-              </ErrorBoundary>
+                  </Card>
+                  {/* Qimen Disk */}
+                  <QimenDisk data={panData} />
+                  {/* Usage Instructions */}
+                  <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
+                    <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
+                      <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
+                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
+                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
+                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
+                      <li>发送给大模型，等待分析结果</li>
+                    </ol>
+                  </Card>
+                </>
+              ) : appMode === 'liuyao' ? (
+                <ErrorBoundary>
+                  <LiuYaoDisk data={panData} />
+                  {/* Usage Instructions */}
+                  <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
+                    <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
+                      <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
+                      <li>选择起卦方式：正时起卦或手动起卦</li>
+                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
+                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
+                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
+                      <li>发送给大模型，等待分析结果</li>
+                    </ol>
+                  </Card>
+                </ErrorBoundary>
+              ) : appMode === 'bazi' ? (
+                <ErrorBoundary>
+                  <BaZiDisk data={panData} />
+                  {/* Usage Instructions */}
+                  <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#fff7e6' }}>
+                    <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
+                      <li><strong>⚠️ 注意：</strong>八字排盘需要修改<strong>日期时间为出生时间</strong>（阳历）</li>
+                      <li>选择正确的<strong>性别</strong></li>
+                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
+                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
+                      <li>修改文本中需要分析的具体内容</li>
+                      <li>发送给大模型，等待分析结果</li>
+                    </ol>
+                  </Card>
+                </ErrorBoundary>
+              ) : (
+                <ErrorBoundary>
+                  <DaLiuRenDisk data={panData} />
+                  {/* Usage Instructions */}
+                  <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
+                    <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
+                      <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
+                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
+                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
+                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
+                      <li>发送给大模型，等待分析结果</li>
+                    </ol>
+                  </Card>
+                </ErrorBoundary>
+              )}
             </div>
-          ) : appMode === 'bazi' ? (
-            /* Ba Zi Display */
-            <div className="w-full">
-              <ErrorBoundary>
-                <BaZiDisk data={panData} />
-              </ErrorBoundary>
-            </div>
-          ) : (
-            /* Da Liu Ren Display */
-            <div className="w-full">
-              <ErrorBoundary>
-                <DaLiuRenDisk data={panData} />
-              </ErrorBoundary>
-            </div>
-          )}
-        </div>
-      </div>
-    </ErrorBoundary>
+          </Content>
+        </Layout>
+      </ErrorBoundary>
+    </ConfigProvider>
   );
 }
 

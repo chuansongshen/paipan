@@ -1,4 +1,7 @@
 import React from 'react';
+import { Card, Descriptions, Typography, Row, Col, Tag, Divider } from 'antd';
+
+const { Text, Title } = Typography;
 
 const LiuYaoDisk = ({ data }) => {
   if (!data) return null;
@@ -10,104 +13,110 @@ const LiuYaoDisk = ({ data }) => {
     if (!guaData) return null;
     
     return (
-      <div className="flex flex-col items-center border p-4 rounded-lg bg-white shadow-sm w-full md:w-1/2">
-        <h3 className="text-lg font-bold mb-2 text-indigo-800">{title}: {guaData.name}</h3>
-        <div className="flex flex-col-reverse w-full gap-1">
+      <Card title={`${title}: ${guaData.name}`} size="small" style={{ flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 8 }}>
           {guaData.yaoData.map((yao, index) => {
             const isMoving = !isBianGua && yao.position === movingYao;
-            const lineClass = yao.yinYang === 1 
-              ? "h-4 bg-indigo-600 w-full rounded" 
-              : "h-4 flex w-full justify-between gap-4";
             
-            const yinLine = (
-              <>
-                <div className="h-4 bg-indigo-600 w-[45%] rounded"></div>
-                <div className="h-4 bg-indigo-600 w-[45%] rounded"></div>
-              </>
-            );
-
             return (
-              <div key={index} className={`flex items-center w-full p-1 ${isMoving ? 'bg-yellow-50 ring-2 ring-yellow-200 rounded' : ''}`}>
-                <div className="w-8 text-xs text-gray-500 text-center">{yao.position}爻</div>
-                <div className="w-16 text-xs text-gray-600 text-center">{yao.stem}{yao.branch}</div>
-                <div className="w-8 text-xs text-gray-500 text-center">{yao.wuxing}</div>
-                <div className="flex-grow mx-2">
-                  {yao.yinYang === 1 ? <div className={lineClass}></div> : <div className={lineClass}>{yinLine}</div>}
+              <div 
+                key={index} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: 8,
+                  background: isMoving ? '#fffbe6' : 'transparent',
+                  border: isMoving ? '2px solid #ffe58f' : 'none',
+                  borderRadius: 4
+                }}
+              >
+                <Text type="secondary" style={{ width: 40, textAlign: 'center', fontSize: 12 }}>{yao.position}爻</Text>
+                <Text style={{ width: 60, textAlign: 'center', fontSize: 12 }}>{yao.stem}{yao.branch}</Text>
+                <Text type="secondary" style={{ width: 32, textAlign: 'center', fontSize: 12 }}>{yao.wuxing}</Text>
+                <div style={{ flex: 1, margin: '0 8px', display: 'flex', justifyContent: 'center' }}>
+                  {yao.yinYang === 1 ? (
+                    <div style={{ height: 16, background: '#4338ca', width: '100%', borderRadius: 2 }} />
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 16 }}>
+                      <div style={{ height: 16, background: '#4338ca', width: '45%', borderRadius: 2 }} />
+                      <div style={{ height: 16, background: '#4338ca', width: '45%', borderRadius: 2 }} />
+                    </div>
+                  )}
                 </div>
-                {isMoving && <div className="w-6 text-red-500 font-bold text-center">○</div>}
+                {isMoving && <Tag color="red">动</Tag>}
               </div>
             );
           })}
         </div>
-      </div>
+      </Card>
     );
   };
 
   return (
-    <div className="flex flex-col w-full max-w-4xl gap-6 p-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1000, width: '100%' }}>
       {/* Header Info */}
-      <div className="bg-white p-4 rounded-lg shadow text-sm">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div><span className="text-gray-500">公历:</span> {dateStr}</div>
-          <div><span className="text-gray-500">农历:</span> {lunarStr}</div>
-          <div><span className="text-gray-500">干支:</span> {ganZhi.year} {ganZhi.month} {ganZhi.day} {ganZhi.hour}</div>
-          <div><span className="text-gray-500">求测年命:</span> {data.benMing} ({birthYear})</div>
-          <div><span className="text-gray-500">行年:</span> {data.xingNian}</div>
-          <div><span className="text-gray-500">空亡:</span> {data.dayXunKong} (日) / {data.hourXunKong} (时)</div>
-        </div>
-      </div>
+      <Card size="small">
+        <Descriptions column={{ xs: 2, sm: 3, md: 4 }} size="small">
+          <Descriptions.Item label="公历">{dateStr}</Descriptions.Item>
+          <Descriptions.Item label="农历">{lunarStr}</Descriptions.Item>
+          <Descriptions.Item label="干支">{ganZhi.year} {ganZhi.month} {ganZhi.day} {ganZhi.hour}</Descriptions.Item>
+          <Descriptions.Item label="求测年命">{data.benMing} ({birthYear})</Descriptions.Item>
+          <Descriptions.Item label="行年">{data.xingNian}</Descriptions.Item>
+          <Descriptions.Item label="空亡">{data.dayXunKong} (日) / {data.hourXunKong} (时)</Descriptions.Item>
+        </Descriptions>
+      </Card>
 
       {/* Hexagrams Display */}
-      <div className="flex flex-col md:flex-row gap-4 justify-center">
-        {renderHexagram(benGua, "本卦")}
-        {bianGua && renderHexagram(bianGua, "变卦", true)}
-      </div>
+      <Row gutter={16}>
+        <Col xs={24} md={12}>
+          {renderHexagram(benGua, "本卦")}
+        </Col>
+        {bianGua && (
+          <Col xs={24} md={12}>
+            {renderHexagram(bianGua, "变卦", true)}
+          </Col>
+        )}
+      </Row>
 
       {/* Shen Sha Display */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-bold mb-3 text-indigo-800 border-b pb-2">神煞</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+      <Card title="神煞" size="small">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
           {Object.entries(shenSha).map(([key, value]) => (
-            <div key={key} className="flex">
-              <span className="text-gray-500 w-16">{key}:</span>
-              <span className="font-medium">{value || '-'}</span>
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Text type="secondary">{key}:</Text>
+              <Tag>{value || '-'}</Tag>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Yao Ci Display */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-bold mb-3 text-indigo-800 border-b pb-2">爻辞</h3>
-        <div className="space-y-4">
+      <Card title="爻辞" size="small">
+        <Row gutter={24}>
           {/* Ben Gua Yao Ci */}
-          <div>
-            <h4 className="font-bold text-md text-gray-700 mb-2">本卦：{benGua.name}</h4>
-            <div className="space-y-2">
-              {benGua.yaoCi && benGua.yaoCi.slice().reverse().map((ci, idx) => (
-                <div key={idx} className="text-sm">
-                  <span className="font-semibold text-indigo-600">{benGua.yaoData[5-idx].position}爻：</span>
-                  <span className="text-gray-700">{ci}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Col xs={24} md={bianGua ? 12 : 24}>
+            <Title level={5} style={{ marginBottom: 12 }}>本卦：{benGua.name}</Title>
+            {benGua.yaoCi && benGua.yaoCi.slice().reverse().map((ci, idx) => (
+              <div key={idx} style={{ marginBottom: 8, fontSize: 14 }}>
+                <Text strong style={{ color: '#4338ca' }}>{benGua.yaoData[5-idx].position}爻：</Text>
+                <Text>{ci}</Text>
+              </div>
+            ))}
+          </Col>
           {/* Bian Gua Yao Ci */}
           {bianGua && bianGua.yaoCi && (
-            <div className="mt-4 pt-4 border-t">
-              <h4 className="font-bold text-md text-gray-700 mb-2">变卦：{bianGua.name}</h4>
-              <div className="space-y-2">
-                {bianGua.yaoCi.slice().reverse().map((ci, idx) => (
-                  <div key={idx} className="text-sm">
-                    <span className="font-semibold text-indigo-600">{bianGua.yaoData[5-idx].position}爻：</span>
-                    <span className="text-gray-700">{ci}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Col xs={24} md={12}>
+              <Title level={5} style={{ marginBottom: 12 }}>变卦：{bianGua.name}</Title>
+              {bianGua.yaoCi.slice().reverse().map((ci, idx) => (
+                <div key={idx} style={{ marginBottom: 8, fontSize: 14 }}>
+                  <Text strong style={{ color: '#4338ca' }}>{bianGua.yaoData[5-idx].position}爻：</Text>
+                  <Text>{ci}</Text>
+                </div>
+              ))}
+            </Col>
           )}
-        </div>
-      </div>
+        </Row>
+      </Card>
     </div>
   );
 };

@@ -1,164 +1,157 @@
 import React from 'react';
+import { Card, Descriptions, Typography, Row, Col, Tag, Table, Divider } from 'antd';
+
+const { Text, Title } = Typography;
 
 const BaZiDisk = ({ data }) => {
-  if (!data) return <div className="text-gray-500">暂无数据</div>;
-  if (data.error) return <div className="text-red-500">错误: {data.error}</div>;
+  if (!data) return <div style={{ color: '#999' }}>暂无数据</div>;
+  if (data.error) return <div style={{ color: '#ff4d4f' }}>错误: {data.error}</div>;
 
   const { 性别, 阳历, 农历, 八字, 生肖, 日主, 年柱, 月柱, 日柱, 时柱, 胎元, 命宫, 身宫, 大运 } = data;
 
   const renderPillar = (pillar, title) => (
-    <div className="flex-1 border border-gray-300 rounded-lg p-4 bg-white shadow-sm">
-      <h4 className="text-sm font-bold text-indigo-700 mb-2 text-center">{title}</h4>
-      <div className="text-center mb-2">
-        <div className="text-2xl font-bold text-gray-800">{pillar.天干.天干}</div>
-        <div className="text-xs text-gray-500">{pillar.天干.五行} {pillar.天干.阴阳}</div>
-        {pillar.天干.十神 && <div className="text-xs text-purple-600 font-semibold">{pillar.天干.十神}</div>}
-      </div>
-      <div className="text-center border-t pt-2">
-        <div className="text-2xl font-bold text-gray-800">{pillar.地支.地支}</div>
-        <div className="text-xs text-gray-500">{pillar.地支.五行} {pillar.地支.阴阳}</div>
-      </div>
-      {pillar.地支.藏干 && (
-        <div className="mt-2 pt-2 border-t text-xs">
-          <div className="font-semibold text-gray-600 mb-1">藏干:</div>
-          {Object.entries(pillar.地支.藏干).map(([type, info]) => (
-            <div key={type} className="flex justify-between text-gray-600">
-              <span>{type}: {info.天干}</span>
-              <span className="text-purple-600">{info.十神}</span>
-            </div>
-          ))}
+    <Card size="small" style={{ height: '100%' }}>
+      <div style={{ textAlign: 'center' }}>
+        <Text type="secondary" strong style={{ fontSize: 12 }}>{title}</Text>
+        <Divider style={{ margin: '8px 0' }} />
+        
+        {/* 天干 */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 'bold', color: '#333' }}>{pillar.天干.天干}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>{pillar.天干.五行} {pillar.天干.阴阳}</Text>
+          {pillar.天干.十神 && (
+            <div><Tag color="purple" style={{ marginTop: 4 }}>{pillar.天干.十神}</Tag></div>
+          )}
         </div>
-      )}
-      <div className="mt-2 pt-2 border-t text-xs text-center">
-        <div className="text-gray-500 mb-1">纳音: {pillar.纳音}</div>
+        
+        <Divider style={{ margin: '8px 0' }} />
+        
+        {/* 地支 */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 'bold', color: '#333' }}>{pillar.地支.地支}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>{pillar.地支.五行} {pillar.地支.阴阳}</Text>
+        </div>
+        
+        {/* 藏干 */}
+        {pillar.地支.藏干 && (
+          <>
+            <Divider style={{ margin: '8px 0' }} />
+            <div style={{ textAlign: 'left', fontSize: 12 }}>
+              <Text type="secondary" strong>藏干:</Text>
+              {Object.entries(pillar.地支.藏干).map(([type, info]) => (
+                <div key={type} style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                  <span>{type}: {info.天干}</span>
+                  <Tag color="purple" size="small">{info.十神}</Tag>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        
+        {/* 纳音 */}
+        <Divider style={{ margin: '8px 0' }} />
+        <Text type="secondary" style={{ fontSize: 12 }}>纳音: {pillar.纳音}</Text>
+        
+        {/* 神煞 */}
         {pillar.神煞 && pillar.神煞.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1 mt-1">
+          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
             {pillar.神煞.map((ss, idx) => (
-              <span key={idx} className="bg-yellow-100 text-yellow-800 px-1 rounded text-[10px]">
-                {ss}
-              </span>
+              <Tag key={idx} color="gold" style={{ fontSize: 10 }}>{ss}</Tag>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 
+  // 大运表格列配置
+  const daYunColumns = [
+    { title: '干支', dataIndex: '干支', key: '干支', render: (text) => <Text strong style={{ color: '#4338ca' }}>{text}</Text> },
+    { title: '年份', key: 'year', render: (_, record) => `${record.开始年份}-${record.结束年份}` },
+    { title: '年龄', key: 'age', render: (_, record) => `${record.开始年龄}-${record.结束年龄}岁` },
+    { title: '天干十神', dataIndex: '天干十神', key: '天干十神', render: (text) => <Tag color="purple">{text}</Tag> },
+    { 
+      title: '地支藏干', 
+      key: 'hidden', 
+      render: (_, record) => (
+        <span>
+          {record.地支藏干.map((gan, i) => (
+            <span key={i} style={{ marginRight: 8 }}>
+              {gan}<Text type="secondary" style={{ fontSize: 12 }}>({record.地支十神[i]})</Text>
+            </span>
+          ))}
+        </span>
+      )
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header Info */}
-      <div className="bg-white p-4 rounded-lg shadow-sm">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">性别:</span>
-            <span className="ml-2 font-semibold">{性别}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">阳历:</span>
-            <span className="ml-2 font-semibold">{阳历}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">农历:</span>
-            <span className="ml-2 font-semibold">{农历}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">生肖:</span>
-            <span className="ml-2 font-semibold">{生肖}</span>
-          </div>
+      <Card size="small">
+        <Descriptions column={{ xs: 2, sm: 4 }} size="small">
+          <Descriptions.Item label="性别">{性别}</Descriptions.Item>
+          <Descriptions.Item label="阳历">{阳历}</Descriptions.Item>
+          <Descriptions.Item label="农历">{农历}</Descriptions.Item>
+          <Descriptions.Item label="生肖">{生肖}</Descriptions.Item>
+        </Descriptions>
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <Text type="secondary">八字</Text>
+          <Title level={3} style={{ margin: '4px 0', color: '#4338ca', letterSpacing: 8 }}>{八字}</Title>
+          <Text type="secondary">日主: <Text strong style={{ color: '#4338ca' }}>{日主}</Text></Text>
         </div>
-        <div className="mt-3 text-center">
-          <div className="text-gray-600 text-sm">八字</div>
-          <div className="text-2xl font-bold text-indigo-700 tracking-wider">{八字}</div>
-          <div className="text-sm text-gray-500 mt-1">日主: <span className="font-bold text-indigo-600">{日主}</span></div>
-        </div>
-      </div>
+      </Card>
 
       {/* Four Pillars */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-lg font-bold mb-4 text-gray-700">四柱</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {renderPillar(年柱, '年柱')}
-          {renderPillar(月柱, '月柱')}
-          {renderPillar(日柱, '日柱')}
-          {renderPillar(时柱, '时柱')}
-        </div>
-      </div>
+      <Card title="四柱" size="small">
+        <Row gutter={16}>
+          <Col xs={12} md={6}>{renderPillar(年柱, '年柱')}</Col>
+          <Col xs={12} md={6}>{renderPillar(月柱, '月柱')}</Col>
+          <Col xs={12} md={6}>{renderPillar(日柱, '日柱')}</Col>
+          <Col xs={12} md={6}>{renderPillar(时柱, '时柱')}</Col>
+        </Row>
+      </Card>
 
       {/* Interactions & Additional Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Row gutter={24}>
         {/* Interactions */}
-        <div className="bg-white p-4 rounded-lg shadow-sm">
-          <h3 className="text-lg font-bold mb-3 text-gray-700">刑冲合会</h3>
-          {data.刑冲合会 && data.刑冲合会.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {data.刑冲合会.map((interaction, idx) => (
-                <span key={idx} className="bg-red-50 text-red-700 border border-red-100 px-2 py-1 rounded text-sm">
-                  {interaction}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-400 text-sm italic">无明显刑冲合会</div>
-          )}
-        </div>
+        <Col xs={24} md={12}>
+          <Card title="刑冲合会" size="small" style={{ height: '100%' }}>
+            {data.刑冲合会 && data.刑冲合会.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {data.刑冲合会.map((interaction, idx) => (
+                  <Tag key={idx} color="red">{interaction}</Tag>
+                ))}
+              </div>
+            ) : (
+              <Text type="secondary" italic>无明显刑冲合会</Text>
+            )}
+          </Card>
+        </Col>
 
         {/* Additional Info */}
-        <div className="bg-white p-4 rounded-lg shadow-sm">
-          <h3 className="text-lg font-bold mb-3 text-gray-700">其他信息</h3>
-          <div className="grid grid-cols-1 gap-2 text-sm">
-            <div className="flex justify-between border-b border-gray-100 pb-1">
-              <span className="text-gray-600">胎元:</span>
-              <span className="font-semibold">{胎元}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-100 pb-1">
-              <span className="text-gray-600">命宫:</span>
-              <span className="font-semibold">{命宫}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">身宫:</span>
-              <span className="font-semibold">{身宫}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <Col xs={24} md={12}>
+          <Card title="其他信息" size="small" style={{ height: '100%' }}>
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label="胎元">{胎元}</Descriptions.Item>
+              <Descriptions.Item label="命宫">{命宫}</Descriptions.Item>
+              <Descriptions.Item label="身宫">{身宫}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Da Yun (Big Luck) */}
       {大运 && (
-        <div className="bg-white p-4 rounded-lg shadow-sm">
-          <h3 className="text-lg font-bold mb-3 text-gray-700">
-            大运 (起运年龄: {大运.起运年龄}岁)
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 text-left">干支</th>
-                  <th className="px-3 py-2 text-left">年份</th>
-                  <th className="px-3 py-2 text-left">年龄</th>
-                  <th className="px-3 py-2 text-left">天干十神</th>
-                  <th className="px-3 py-2 text-left">地支藏干</th>
-                </tr>
-              </thead>
-              <tbody>
-                {大运.大运.map((dy, idx) => (
-                  <tr key={idx} className="border-t hover:bg-gray-50">
-                    <td className="px-3 py-2 font-bold text-indigo-700">{dy.干支}</td>
-                    <td className="px-3 py-2">{dy.开始年份}-{dy.结束年份}</td>
-                    <td className="px-3 py-2">{dy.开始年龄}-{dy.结束年龄}</td>
-                    <td className="px-3 py-2 text-purple-600">{dy.天干十神}</td>
-                    <td className="px-3 py-2">
-                      {dy.地支藏干.map((gan, i) => (
-                        <span key={i} className="mr-2">
-                          {gan}<span className="text-xs text-purple-600">({dy.地支十神[i]})</span>
-                        </span>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card title={`大运 (起运年龄: ${大运.起运年龄}岁)`} size="small">
+          <Table 
+            dataSource={大运.大运.map((item, idx) => ({ ...item, key: idx }))}
+            columns={daYunColumns}
+            pagination={false}
+            size="small"
+            scroll={{ x: 'max-content' }}
+          />
+        </Card>
       )}
     </div>
   );

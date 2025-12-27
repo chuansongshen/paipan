@@ -1,4 +1,5 @@
 import React from 'react';
+import { Card, Tag } from 'antd';
 import classNames from 'classnames';
 
 const PALACE_MAP = [
@@ -8,7 +9,7 @@ const PALACE_MAP = [
 ];
 
 const QimenDisk = ({ data }) => {
-  if (!data || data.error) return <div className="text-red-500">{data?.error || 'No Data'}</div>;
+  if (!data || data.error) return <div style={{ color: '#ff4d4f' }}>{data?.error || 'No Data'}</div>;
 
   const renderCell = (palaceId) => {
     const isCenter = palaceId === 5;
@@ -26,16 +27,29 @@ const QimenDisk = ({ data }) => {
     
     if (isCenter) {
       return (
-        <div className="flex flex-col items-center justify-center h-full bg-yellow-50/50 gap-1">
-          <div className="text-gray-400 text-sm">中宫</div>
-          <div className="flex gap-2">
-            <div className="flex flex-col items-center opacity-60">
-              <span className="text-[8px] text-gray-400">暗</span>
-              <span className="font-bold text-sm text-gray-600">{anGan}</span>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '100%', 
+          background: 'rgba(255, 251, 235, 0.5)',
+          gap: 4,
+          padding: 8
+        }}>
+          <div style={{ color: '#999', fontSize: 14 }}>中宫</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.6 }}>
+              <span style={{ fontSize: 8, color: '#999' }}>暗</span>
+              <span style={{ fontWeight: 'bold', fontSize: 14, color: '#666' }}>{anGan}</span>
             </div>
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-gray-500">地</span>
-              <span className="font-bold text-xl text-amber-800">{diStem}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: 8, color: '#999' }}>天</span>
+              <span style={{ fontWeight: 'bold', fontSize: 18, color: '#dc2626' }}>{tianStem}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: 8, color: '#999' }}>地</span>
+              <span style={{ fontWeight: 'bold', fontSize: 18, color: '#b45309' }}>{diStem}</span>
             </div>
           </div>
         </div>
@@ -43,64 +57,117 @@ const QimenDisk = ({ data }) => {
     }
 
     return (
-      <div className={classNames("flex flex-col h-full p-1 relative", {
-        "bg-gray-100": isKong // Background color for Void
-      })}>
-        {/* Top: God */}
-        <div className="flex justify-between items-start">
-           <div className="text-xs text-purple-600 font-bold">{god}</div>
-           {isMa && <div className="text-xs bg-red-600 text-white rounded px-1 scale-75 origin-top-right">马</div>}
+      <div className={classNames("h-full relative", {
+        "bg-gray-100": isKong
+      })} style={{ position: 'relative', display: 'flex', padding: 4 }}>
+        
+        {/* Left Column: 八神、九星、八门 */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flex: 1,
+          paddingRight: 4
+        }}>
+          {/* 八神 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 'bold' }}>{god}</span>
+            {isMa && <Tag color="red" style={{ transform: 'scale(0.65)', transformOrigin: 'left', margin: 0, padding: '0 2px' }}>马</Tag>}
+          </div>
+          {/* 九星 */}
+          <div>
+            <span style={{ fontSize: 14, color: '#1d4ed8', fontWeight: 500 }}>{star && star.split('/')[0]}</span>
+          </div>
+          {/* 八门 */}
+          <div>
+            <span style={{ fontSize: 14, color: '#15803d', fontWeight: 500 }}>{gate}</span>
+          </div>
         </div>
         
-        {/* Middle: Star and Gate */}
-        <div className="flex justify-between items-center flex-1 px-2">
-          <div className="text-blue-700 font-medium">{star && star.split('/')[0]}</div>
-          <div className="text-green-700 font-medium">{gate}</div>
-        </div>
-        
-        {/* Bottom: Stems & An Gan */}
-        <div className="flex justify-center items-end mt-1 gap-1">
-           {/* An Gan (Dark Stem) */}
-           <div className="flex flex-col items-center opacity-60">
-            <span className="text-[8px] text-gray-400">暗</span>
-            <span className="font-bold text-sm text-gray-600">{anGan}</span>
+        {/* Right Column: 暗干、天盘干、地盘干 */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'flex-end',
+          alignItems: 'flex-end',
+          gap: 2
+        }}>
+          {/* 暗干 */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.6 }}>
+            <span style={{ fontSize: 8, color: '#999' }}>暗</span>
+            <span style={{ fontWeight: 'bold', fontSize: 12, color: '#666' }}>{anGan}</span>
           </div>
-          
-          <div className="flex flex-col items-center">
-            <span className="text-[8px] text-gray-500">天</span>
-            <span className="font-bold text-lg text-red-600">{tianStem}</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-[8px] text-gray-500">地</span>
-            <span className="font-bold text-lg text-amber-700">{diStem}</span>
+          {/* 天盘干 + 地盘干 横排 */}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: 8, color: '#999' }}>天</span>
+              <span style={{ fontWeight: 'bold', fontSize: 18, color: '#dc2626' }}>{tianStem}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: 8, color: '#999' }}>地</span>
+              <span style={{ fontWeight: 'bold', fontSize: 18, color: '#b45309' }}>{diStem}</span>
+            </div>
           </div>
         </div>
         
         {/* Kong Wang Indicator */}
         {isKong && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-            <span className="text-4xl text-red-500/20 font-bold">⭕️</span>
+          <div style={{ 
+            position: 'absolute', 
+            top: '50%', 
+            left: '50%', 
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none'
+          }}>
+            <span style={{ fontSize: 32, color: 'rgba(239, 68, 68, 0.15)', fontWeight: 'bold' }}>⭕</span>
           </div>
         )}
         
         {/* Palace Name Watermark */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-          <span className="text-4xl font-serif">{PALACE_MAP.find(p => p.id === palaceId)?.name}</span>
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          opacity: 0.05, 
+          pointerEvents: 'none'
+        }}>
+          <span style={{ fontSize: 48, fontFamily: 'serif' }}>{PALACE_MAP.find(p => p.id === palaceId)?.name}</span>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="w-full max-w-md mx-auto aspect-square bg-white shadow-xl rounded-lg overflow-hidden border border-gray-200">
-      <div className="grid grid-cols-3 grid-rows-3 h-full divide-x divide-y divide-gray-200">
-        {PALACE_MAP.map((palace) => (
-          <div key={palace.id} className="relative bg-white hover:bg-gray-50 transition-colors">
+    <Card 
+      styles={{ body: { padding: 0 } }}
+      style={{ width: '100%', maxWidth: 540, margin: '0 auto' }}
+    >
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(3, 1fr)', 
+        gridTemplateRows: 'repeat(3, 1fr)', 
+        height: '100%',
+        minHeight: 420
+      }}>
+        {PALACE_MAP.map((palace, idx) => (
+          <div 
+            key={palace.id} 
+            style={{ 
+              position: 'relative', 
+              background: '#fff',
+              borderRight: (idx % 3 !== 2) ? '1px solid #e5e7eb' : 'none',
+              borderBottom: (Math.floor(idx / 3) !== 2) ? '1px solid #e5e7eb' : 'none',
+              minHeight: 120
+            }}
+          >
             {renderCell(palace.id)}
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 };
 

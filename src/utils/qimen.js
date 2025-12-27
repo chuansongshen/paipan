@@ -393,46 +393,49 @@ export const getPaiPan = (date, method = 'chaibu') => {
     }
   }
 
-  // Calculate An Gan (Dark Stem)
-  // Method: 干加值使门飞 (Gan plus Zhi Shi gate flying)
-  // Special case for Fu Yin: If Hour Stem overlaps with Di Pan or Tian Pan, start from center palace
+  // Calculate An Gan (Dark Stem / 暗干)
+  // Method: 干加值使门（飞）
+  // 时干加值使门：时干落在值使门当前所在的宫位，其他天干按飞宫顺序排布
+  // 飞宫顺序：1-2-3-4-5-6-7-8-9（阳遁顺飞）或 9-8-7-6-5-4-3-2-1（阴遁逆飞）
   
-  // 1. Find Hour Stem (if Jia, use Xun Leader)
+  // 1. 确定时干（如果是甲，则用旬首遁甲）
   let anGanStartStem = hourStem;
   if (hourStem === '甲') anGanStartStem = leaderStem;
   
-  // 2. Check for Fu Yin (伏吟局)
-  // Fu Yin occurs when Hour Stem matches any Di Pan or Tian Pan stem
-  let isFuYin = false;
-  for (let p = 1; p <= 9; p++) {
-    if (diPan[p] === anGanStartStem || tianPanStems[p] === anGanStartStem) {
-      isFuYin = true;
-      break;
+  // 2. 找到值使门在人盘（renPan）中当前所在的宫位
+  let zhiShiPalace = 0;
+  Object.entries(renPan).forEach(([p, gate]) => {
+    if (gate === originalGate) {
+      zhiShiPalace = parseInt(p);
     }
-  }
+  });
+  // 如果没找到（值使门在中宫5），默认使用2宫
+  if (zhiShiPalace === 0) zhiShiPalace = 2;
   
-  // 3. Determine starting palace
-  // If Fu Yin, start from center palace (5); otherwise start from Zhi Shi Palace
-  const anGanStartPalace = isFuYin ? 5 : gatePalace;
+  // 3. 起始宫位：时干落在值使门所在宫位
+  const anGanStartPalace = zhiShiPalace;
   
-  // 4. Align the sequence so that anGanStartStem is at anGanStartPalace
-  // Standard 10-stem sequence (excluding 甲 since it maps to xun leader)
-  const STEMS_SEQ = ['戊', '己', '庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁'];
-  const startStemIdx = STEMS_SEQ.indexOf(anGanStartStem);
+  // 4. 六仪三奇顺序
+  const STEMS_SEQ = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
+  
+  // 5. 找到时干在序列中的位置
+  const hourStemIdx = STEMS_SEQ.indexOf(anGanStartStem);
   
   const anGan = {};
-  // Iterate through 9 palaces
+  
+  // 6. 从值使门宫位开始，时干排在此处，其他天干按飞宫顺序排布
   for (let i = 0; i < 9; i++) {
-    // Stem index in sequence (wraps around the 10-stem sequence)
-    const stem = STEMS_SEQ[(startStemIdx + i) % 10];
+    // 天干：从时干开始，按六仪三奇顺序
+    const stemIdx = (hourStemIdx + i) % 9;
+    const stem = STEMS_SEQ[stemIdx];
     
-    // Palace index
+    // 宫位：按飞宫顺序
     let p;
     if (ju.isYang) {
-      // Forward from anGanStartPalace
+      // 阳遁顺飞
       p = (anGanStartPalace - 1 + i) % 9 + 1;
     } else {
-      // Backward from anGanStartPalace
+      // 阴遁逆飞
       let val = (anGanStartPalace - 1 - i) % 9;
       if (val < 0) val += 9;
       p = val + 1;
