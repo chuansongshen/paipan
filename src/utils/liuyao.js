@@ -14,21 +14,27 @@ const WUXING_RELATION = {
 
 // Helper to get index
 const getZhiIdx = (z) => ZHI.indexOf(z);
-const getGanIdx = (g) => GAN.indexOf(g);
 
 // Calculate Hexagram based on Time (Zheng Shi) or Manual Input
 // manualYao: array of 6 numbers [1-6]: 9=老阳, 7=少阳, 6=老阴, 8=少阴 (from bottom to top)
-export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null) {
+export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null, gender = '男') {
   const lunar = Lunar.fromDate(date);
   
   let upIdx, downIdx, movingYao, benGua, bianGua;
+  let movingYaos = [];
   
   if (manualYao && manualYao.length === 6) {
     // Manual input mode
     // Convert manual yao to hexagram
     // 9=老阳(moving yang), 7=少阳(yang), 6=老阴(moving yin), 8=少阴(yin)
+    const isValidManual = manualYao.every(y => [6, 7, 8, 9].includes(y));
+    if (!isValidManual) {
+      throw new Error('manualYao 包含非法值，必须为 6/7/8/9');
+    }
+
     const lines = manualYao.map(y => (y === 9 || y === 7) ? 1 : 0); // 1=Yang, 0=Yin
     const movingLines = manualYao.map((y, idx) => (y === 9 || y === 6) ? idx + 1 : 0).filter(x => x > 0);
+    movingYaos = movingLines;
     
     // Find matching trigrams
     const lowerLines = lines.slice(0, 3);
@@ -43,14 +49,13 @@ export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null) {
     downIdx = findTrigramIdx(lowerLines);
     upIdx = findTrigramIdx(upperLines);
     
-    // For manual mode, if multiple moving lines, use the first one for changed hexagram
-    // Or use all moving lines? For simplicity, use first moving line
+    // 兼容旧字段：movingYao 仍保留首个动爻
     movingYao = movingLines.length > 0 ? movingLines[0] : 0;
     
     benGua = getHexagramData(upIdx, downIdx);
     
-    if (movingYao > 0) {
-      bianGua = getChangedHexagram(benGua, movingYao);
+    if (movingLines.length > 0) {
+      bianGua = getChangedHexagram(benGua, movingLines);
     } else {
       bianGua = null;
     }
@@ -77,6 +82,7 @@ export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null) {
     // Moving Yao = (YearZhi + Month + Day + HourZhi) % 6
     movingYao = (yearZhiIdx + month + day + hourZhiIdx) % 6;
     if (movingYao === 0) movingYao = 6;
+    movingYaos = [movingYao];
     
     // Construct Hexagram Data
     benGua = getHexagramData(upIdx, downIdx);
@@ -110,13 +116,6 @@ export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null) {
   // Calculate Xing Nian (Current Age Year)
   // Male: Start from Bing Yin (3). Clockwise.
   // Female: Start from Ren Shen (9). Counter-Clockwise.
-  // We need gender. Assuming Male for now or pass it in.
-  // The user didn't specify gender input for Liu Yao, but Da Liu Ren has it.
-  // Let's assume Male for now or add gender param.
-  // App.jsx passes gender to Da Liu Ren but not Liu Yao.
-  // I should update App.jsx to pass gender to Liu Yao too.
-  // For now, I'll default to Male if not provided.
-  const gender = '男'; // Default
   const currentYear = date.getFullYear();
   const age = currentYear - birthYear + 1;
   let xingNian = '';
@@ -148,6 +147,7 @@ export function getLiuYaoPaiPan(date, birthYear = 2000, manualYao = null) {
     benGua,
     bianGua,
     movingYao,
+    movingYaos,
     shenSha,
     birthYear,
     benMing,
@@ -225,10 +225,14 @@ function getHexagramData(upIdx, downIdx) {
 }
 
 function getChangedHexagram(benGua, movingYao) {
-  // movingYao is 1-6
-  const idx = movingYao - 1;
+  // movingYao 支持单值或数组（1-6）
+  const movingList = Array.isArray(movingYao) ? movingYao : [movingYao];
+  const validMovingList = [...new Set(movingList.filter(v => Number.isInteger(v) && v >= 1 && v <= 6))];
   const newLines = [...benGua.lines];
-  newLines[idx] = newLines[idx] === 1 ? 0 : 1; // Flip
+  validMovingList.forEach((lineNo) => {
+    const idx = lineNo - 1;
+    newLines[idx] = newLines[idx] === 1 ? 0 : 1;
+  });
   
   // We need to find the new Upper/Lower indices based on lines
   // Lines 0-2 = Lower, 3-5 = Upper

@@ -1,4 +1,4 @@
-import { Lunar, Solar, EightChar, LunarUtil } from 'lunar-javascript';
+import { Lunar, Solar } from 'lunar-javascript';
 
 const GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
@@ -137,7 +137,7 @@ const getXun = (ganZhi) => {
 };
 
 // Shen Sha Helpers
-const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi, naYin) => {
+const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
   const shenSha = [];
   const gan = ganZhi[0];
   const zhi = ganZhi.substring(1);
@@ -147,7 +147,6 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi, naYin) => {
   const yearZhi = yearGanZhi.substring(1);
   const monthZhi = monthGanZhi.substring(1);
   const yearGan = yearGanZhi[0];
-  const monthGan = monthGanZhi[0];
 
   // 天乙贵人 (Tian Yi Gui Ren) - Day Gan or Year Gan
   const tianYiMap = {
@@ -559,7 +558,7 @@ export function getBaZiPaiPan(date, birthYear = 2000, gender = '男') {
     });
 
     // Calculate Shen Sha for this pillar
-    const shenSha = getShenSha(ganZhi, dayGanZhi, yearGanZhi, monthGanZhi, getNaYin(ganZhi));
+    const shenSha = getShenSha(ganZhi, dayGanZhi, yearGanZhi, monthGanZhi);
     
     // Xun and Kong Wang
     const xunInfo = getXun(ganZhi);

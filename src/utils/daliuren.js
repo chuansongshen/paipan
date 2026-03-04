@@ -1,4 +1,4 @@
-import { Lunar, Solar } from 'lunar-javascript';
+import { Lunar } from 'lunar-javascript';
 import { ZHI_ZHI_DATA } from './zhizhi_data.js';
 
 const GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
@@ -195,7 +195,6 @@ const SHEN_SHA_DESC = {
 export const getDaLiuRenPaiPan = (date, birthYear, gender = '男') => {
 
   const lunar = Lunar.fromDate(date);
-  const solar = Solar.fromDate(date);
   
   // 1. Four Pillars
   const yearGanZhi = lunar.getYearInGanZhiExact();
@@ -283,12 +282,11 @@ export const getDaLiuRenPaiPan = (date, birthYear, gender = '男') => {
   // 7. Comprehensive Shen Sha
   const yearGan = yearGanZhi.substring(0, 1);
   const yearZhi = yearGanZhi.substring(1, 2);
-  const monthGan = monthGanZhi.substring(0, 1);
   const monthZhi = monthGanZhi.substring(1, 2);
   
   const shenShaData = getAllShenSha({
     yearGan, yearZhi,
-    monthGan, monthZhi,
+    monthZhi,
     dayGan, dayZhi,
     dayGanZhi
   });
@@ -371,7 +369,7 @@ function getXingNian(birthYear, gender, currentYear) {
   return GAN[ganIdx] + ZHI[zhiIdx];
 }
 
-function getAllShenSha({yearGan, yearZhi, monthGan, monthZhi, dayGan, dayZhi, dayGanZhi}) {
+function getAllShenSha({yearGan, yearZhi, monthZhi, dayGan, dayZhi, dayGanZhi}) {
   const yearGanIdx = getGanIdx(yearGan);
   const yearZhiIdx = getZhiIdx(yearZhi);
   const monthZhiIdx = getZhiIdx(monthZhi);
@@ -520,9 +518,9 @@ function getZhiZhi(dayGanZhi, dayTopZhi) {
     return '无法找到对应的直指内容';
   }
   
-  // For this day pillar, there are 12 possible files (one for each "干上" branch)
-  // We need to find the file where "干上" matches dayTopZhi
+  // 每个日柱对应 12 条直指，按“干上”分流
   const baseIndex = dayPillarIndex * 12 + 1;
+  const dayEntries = [];
   
   for (let i = 0; i < 12; i++) {
     const fileIndex = baseIndex + i;
@@ -536,11 +534,26 @@ function getZhiZhi(dayGanZhi, dayTopZhi) {
     
     // Search for "干上" in the content
     const ganShangMatch = content.match(/干上(.)/);
-    if (ganShangMatch && ganShangMatch[1] === dayTopZhi) {
+    if (!ganShangMatch) continue;
+    const ganShang = ganShangMatch[1];
+    dayEntries.push({ content, ganShang });
+    if (ganShang === dayTopZhi) {
       return content;
     }
   }
-  
+
+  // 兜底：个别日柱在原始数据中可能不存在目标“干上”，选最近支位，避免直接返回空文案
+  if (dayEntries.length > 0) {
+    const targetIdx = getZhiIdx(dayTopZhi);
+    const scored = dayEntries.map((entry) => {
+      const idx = getZhiIdx(entry.ganShang);
+      const distance = idx === -1 || targetIdx === -1 ? Number.MAX_SAFE_INTEGER : Math.min((idx - targetIdx + 12) % 12, (targetIdx - idx + 12) % 12);
+      return { ...entry, distance };
+    }).sort((a, b) => a.distance - b.distance);
+    console.warn(`[DaLiuRen] 直指未命中干上${dayTopZhi}，已回退到干上${scored[0].ganShang}`);
+    return scored[0].content;
+  }
+
   return '未找到匹配的直指内容';
 }
 
@@ -654,28 +667,21 @@ function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
   if (candidates.length === 1) {
     chuChuan = candidates[0].zhi;
   } else if (candidates.length > 1) {
-    // When multiple Zei/Ke exist, need to check for She Hai (涉害)
-    // She Hai: Calculate the "depth" - how many different 五行 elements 
-    // each branch traverses before returning to its home position
-    
-    // Helper function to calculate She Hai depth for a branch
+    // 多贼克并见时，走简化涉害评分：
+    // 统计该支在 12 支序列中与其他支形成生克冲突的次数（克出/受克）。
+    // 注意：这是工程化近似，并非古法全量推演。
     const calculateSheHaiDepth = (branch) => {
       const zhiIdx = getZhiIdx(branch);
-      const elements = [];
-      
-      // Traverse forward through 12 branches, counting unique elements
+      let depth = 0;
       for (let i = 1; i < 12; i++) {
         const nextIdx = (zhiIdx + i) % 12;
         const nextZhi = ZHI[nextIdx];
-        const element = wuxing[nextZhi];
-        
-        // Count each unique element encountered
-        if (!elements.includes(element)) {
-          elements.push(element);
+        // 克出与受克都计入涉害深度
+        if (overcomes(branch, nextZhi) || overcomes(nextZhi, branch)) {
+          depth += 1;
         }
       }
-      
-      return elements.length;
+      return depth;
     };
     
     // Calculate She Hai depth for each candidate
@@ -862,46 +868,6 @@ function getKongWang(ganZhi) {
   return `${k1}${k2}`;
 }
 
-function getMaXing(zhi) {
-  // Shen-Zi-Chen -> Yin
-  // Yin-Wu-Xu -> Shen
-  // Si-You-Chou -> Hai
-  // Hai-Mao-Wei -> Si
-  if (['申', '子', '辰'].includes(zhi)) return '寅';
-  if (['寅', '午', '戌'].includes(zhi)) return '申';
-  if (['巳', '酉', '丑'].includes(zhi)) return '亥';
-  if (['亥', '卯', '未'].includes(zhi)) return '巳';
-  return '';
-}
-
-function getTaoHua(zhi) {
-  // Shen-Zi-Chen -> You
-  // Yin-Wu-Xu -> Mao
-  // Si-You-Chou -> Wu
-  // Hai-Mao-Wei -> Zi
-  if (['申', '子', '辰'].includes(zhi)) return '酉';
-  if (['寅', '午', '戌'].includes(zhi)) return '卯';
-  if (['巳', '酉', '丑'].includes(zhi)) return '午';
-  if (['亥', '卯', '未'].includes(zhi)) return '子';
-  return '';
-}
-
-function getLu(gan) {
-  const map = {
-    '甲': '寅', '乙': '卯', '丙': '巳', '丁': '午', '戊': '巳',
-    '己': '午', '庚': '申', '辛': '酉', '壬': '亥', '癸': '子'
-  };
-  return map[gan] || '';
-}
-
-function getYangRen(gan) {
-  const map = {
-    '甲': '卯', '乙': '辰', '丙': '午', '丁': '未', '戊': '午',
-    '己': '未', '庚': '酉', '辛': '戌', '壬': '子', '癸': '丑'
-  };
-  return map[gan] || '';
-}
-
 function getShenShaDistribution(shenShaData) {
   const distribution = {};
   ZHI.forEach(z => distribution[z] = []);
@@ -912,10 +878,6 @@ function getShenShaDistribution(shenShaData) {
     if (shenShaData[cat]) {
       Object.entries(shenShaData[cat]).forEach(([name, data]) => {
         if (data && data.zhi) {
-          // Handle potential multiple branches if any (though current logic returns single)
-          const zhis = data.zhi.split(''); // Just in case, but usually it's one char
-          // Actually, my logic returns single char strings like '子'.
-          // But let's be safe.
           if (distribution[data.zhi]) {
             distribution[data.zhi].push(name);
           }
@@ -993,4 +955,3 @@ function getShenShaText(shenShaData, dayGanZhi, monthGanZhi) {
   
   return text;
 }
-

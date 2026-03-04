@@ -6,7 +6,8 @@ const { Text, Title } = Typography;
 const LiuYaoDisk = ({ data }) => {
   if (!data) return null;
   
-  const { benGua, bianGua, movingYao, shenSha, ganZhi, dateStr, lunarStr, birthYear } = data;
+  const { benGua, bianGua, movingYao, movingYaos = [], shenSha, ganZhi, dateStr, lunarStr, birthYear } = data;
+  const movingSet = new Set((movingYaos.length > 0 ? movingYaos : [movingYao]).filter(Boolean));
   
   // Helper to render a single hexagram
   const renderHexagram = (guaData, title, isBianGua = false) => {
@@ -16,7 +17,7 @@ const LiuYaoDisk = ({ data }) => {
       <Card title={`${title}: ${guaData.name}`} size="small" style={{ flex: 1 }}>
         <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 8 }}>
           {guaData.yaoData.map((yao, index) => {
-            const isMoving = !isBianGua && yao.position === movingYao;
+            const isMoving = !isBianGua && movingSet.has(yao.position);
             
             return (
               <div 

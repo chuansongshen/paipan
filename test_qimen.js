@@ -34,3 +34,18 @@ try {
 } catch (e) {
   console.error('Exception:', e);
 }
+
+console.log('\nTesting Li Chun boundary pillars:');
+const beforeLiChun = new Date('2026-02-04T00:00:00+08:00');
+const afterLiChun = new Date('2026-02-04T06:00:00+08:00');
+const beforeResult = getPaiPan(beforeLiChun, 'chaibu');
+const afterResult = getPaiPan(afterLiChun, 'chaibu');
+console.log('Before Li Chun year/month:', beforeResult.yearGanZhi, beforeResult.monthGanZhi, beforeResult.jieQi);
+console.log('After  Li Chun year/month:', afterResult.yearGanZhi, afterResult.monthGanZhi, afterResult.jieQi);
+
+console.log('\nTesting Chaibu vs Zhirun (same timestamp):');
+const compareDate = new Date('2026-01-05T00:00:00+08:00');
+const chaibu = getPaiPan(compareDate, 'chaibu');
+const zhirun = getPaiPan(compareDate, 'zhirun');
+console.log('Chaibu:', chaibu.jieQi, chaibu.juNum, chaibu.type);
+console.log('Zhirun:', zhirun.jieQi, zhirun.juNum, zhirun.type);

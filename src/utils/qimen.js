@@ -7,89 +7,54 @@ const getGanZhiIndex = (ganZhi) => {
   const ZHIS = "子丑寅卯辰巳午未申酉戌亥";
   const gan = ganZhi[0];
   const zhi = ganZhi[1];
-  const ganIdx = GANS.indexOf(gan);
-  const zhiIdx = ZHIS.indexOf(zhi);
-  // (ganIdx - zhiIdx) / 2 * 12 + zhiIdx ? No.
-  // Simple search or formula.
-  // Formula: let i = 0..59.
   for (let i = 0; i < 60; i++) {
     if (GANS[i % 10] === gan && ZHIS[i % 12] === zhi) return i;
   }
   return 0;
 };
 
+const resolveJieQiName = (lunar, method) => {
+  // 拆补：严格按节气交接时刻；置润：按交节日处理（同一天内可提前切换节气）
+  const useDayBoundary = method === 'zhirun';
+  const prevJieQi = lunar.getPrevJieQi(useDayBoundary);
+  const jieQiName = prevJieQi?.getName?.();
+  if (!jieQiName) {
+    console.warn('[Qimen] 无法获取节气名称，回退到严格交节时刻');
+    return lunar.getPrevJieQi(false)?.getName?.() || '';
+  }
+  return jieQiName;
+};
+
+const getYuanByFuTou = (dayIdx) => {
+  const fuTouIdx = dayIdx - (dayIdx % 5);
+  const fuTouZhiIdx = fuTouIdx % 12;
+  if ([0, 6, 3, 9].includes(fuTouZhiIdx)) return 0;
+  if ([2, 8, 5, 11].includes(fuTouZhiIdx)) return 1;
+  return 2;
+};
+
 export const calculateJu = (date, method = 'chaibu') => {
   const solar = Solar.fromDate(date);
   const lunar = solar.getLunar();
-  
-  // 1. Get Solar Term (Jie Qi)
-  // lunar-javascript's getJieQi() returns the *current* JieQi name if today is the day, or empty?
-  // We need the JieQi that the current moment belongs to.
-  // Lunar.getPrevJieQi(true) might be useful.
-  const prevJieQi = lunar.getPrevJieQi(false); // false = respect exact time transition
-  const jieQiName = prevJieQi.getName();
-  
-  // 2. Determine Yuan (Upper/Middle/Lower)
-  const dayGanZhi = lunar.getDayInGanZhi();
-  const dayIdx = getGanZhiIndex(dayGanZhi);
-  
-  let yuan = 0; // 0: Upper, 1: Middle, 2: Lower
-  
-  if (method === 'chaibu') {
-    // Chai Bu: Strictly by Day GanZhi
-    // Upper: Zi, Wu, Mao, You (Branches 0, 6, 3, 9) -> No.
-    // Fu Tou method:
-    // Find the Fu Tou (Leader) of the current day.
-    // Fu Tou is the Jia/Ji day.
-    // Day Index % 5 gives offset from Fu Tou.
-    // If Day is Jia(0) -> Offset 0. Yi(1) -> Offset 1.
-    // Fu Tou Index = Day Index - (Day Index % 5).
-    // Check Fu Tou Branch.
-    const fuTouIdx = dayIdx - (dayIdx % 5);
-    const fuTouZhiIdx = fuTouIdx % 12; // 0=Zi, 1=Chou...
-    
-    // Zi (0), Wu (6), Mao (3), You (9) -> Upper
-    // Yin (2), Shen (8), Si (5), Hai (11) -> Middle
-    // Chen (4), Xu (10), Chou (1), Wei (7) -> Lower
-    
-    if ([0, 6, 3, 9].includes(fuTouZhiIdx)) yuan = 0;
-    else if ([2, 8, 5, 11].includes(fuTouZhiIdx)) yuan = 1;
-    else yuan = 2;
-    
-  } else {
-    // Zhi Run (Placeholder - Basic implementation or fallback to Chai Bu for now)
-    // Real Zhi Run requires calculating the gap and adjusting.
-    // For this task, I will implement a simplified version or standard Chai Bu if Zhi Run is too complex for this single file.
-    // However, user asked for it.
-    // "Zhi Run" aligns the Ju change with the Jia Zi day.
-    // If the gap is large, we might be in a different Ju than the Solar Term suggests.
-    // For now, let's use Chai Bu logic as base but maybe warn or try to implement if possible.
-    // Let's stick to Chai Bu for the MVP step and refine if needed.
-    // Actually, let's just use Chai Bu logic for now and mark as TODO.
-    // Or better: Use the same logic for Yuan determination, but the *Jie Qi* might be shifted?
-    // In Zhi Run, the Jie Qi used for the Ju is determined by the Fu Tou, not the strict solar term.
-    // If Fu Tou is closer to Next Jie Qi, use Next Jie Qi?
-    // "Chao Shen": Fu Tou arrives before Jie Qi.
-    // "Jie Qi": Fu Tou arrives after Jie Qi.
-    // We use the Jie Qi that is "closest" or "current" based on the run?
-    // Let's use Chai Bu for both for now to ensure stability, and I will add a note.
-    // Wait, I should try to do it right.
-    // But without a robust Zhi Run calendar, it's risky.
-    // I will default to Chai Bu logic for Yuan, but maybe the JieQi mapping is what changes.
-    
-    // Fallback to Chai Bu logic for Yuan determination
-    const fuTouIdx = dayIdx - (dayIdx % 5);
-    const fuTouZhiIdx = fuTouIdx % 12;
-    if ([0, 6, 3, 9].includes(fuTouZhiIdx)) yuan = 0;
-    else if ([2, 8, 5, 11].includes(fuTouZhiIdx)) yuan = 1;
-    else yuan = 2;
+
+  const effectiveMethod = method === 'zhirun' ? 'zhirun' : 'chaibu';
+  if (method !== effectiveMethod) {
+    console.warn(`[Qimen] 未知定局方式 "${method}"，已回退为拆补法`);
   }
-  
+
+  // 1. Get Solar Term (Jie Qi)
+  const jieQiName = resolveJieQiName(lunar, effectiveMethod);
+
+  // 2. Determine Yuan (Upper/Middle/Lower)
+  const dayGanZhi = lunar.getDayInGanZhiExact?.() || lunar.getDayInGanZhi();
+  const dayIdx = getGanZhiIndex(dayGanZhi);
+  const yuan = getYuanByFuTou(dayIdx); // 0:上元 1:中元 2:下元
+
   // 3. Get Ju Number
   const juInfo = JIE_QI_JU[jieQiName];
   if (!juInfo) {
-    // Fallback or error
-    return { error: "Unknown Jie Qi" };
+    console.error(`[Qimen] 未知节气 "${jieQiName}"，无法定局`);
+    return { error: `Unknown Jie Qi: ${jieQiName || 'N/A'}` };
   }
   
   const juNum = juInfo[yuan];
@@ -112,8 +77,10 @@ export const getPaiPan = (date, method = 'chaibu') => {
   
   const solar = Solar.fromDate(date);
   const lunar = solar.getLunar();
-  const yearGanZhi = lunar.getYearInGanZhi();
-  const monthGanZhi = lunar.getMonthInGanZhi();
+  // 奇门四柱采用节气边界（立春/节令）精确口径
+  const yearGanZhi = lunar.getYearInGanZhiExact?.() || lunar.getYearInGanZhi();
+  const monthGanZhi = lunar.getMonthInGanZhiExact?.() || lunar.getMonthInGanZhi();
+  const dayGanZhi = lunar.getDayInGanZhiExact?.() || lunar.getDayInGanZhi();
   const hourGanZhi = lunar.getTimeInGanZhi();
   
   const dayXunKong = lunar.getDayXunKong();
@@ -187,7 +154,6 @@ export const getPaiPan = (date, method = 'chaibu') => {
   // Or uses the star of 5 (Tian Qin).
   // Tian Qin usually resides in 5. If 5, it goes to 2.
   // Let's track the original star of the leader palace.
-  const zhiFuStar = STARS[leaderPalace === 5 ? 2 : leaderPalace]; // Wait.
   // Actually, the Star at the Leader Palace position (in the original arrangement) is the Zhi Fu.
   // Original Stars: 1:Peng, 2:Rui, 3:Chong, 4:Fu, 5:Qin, 6:Xin, 7:Zhu, 8:Ren, 9:Ying.
   // If Leader Palace is 5, Zhi Fu is Tian Qin.
@@ -447,6 +413,7 @@ export const getPaiPan = (date, method = 'chaibu') => {
     ...ju,
     yearGanZhi,
     monthGanZhi,
+    dayGanZhi,
     hourGanZhi,
     dayXunKong,
     hourXunKong,

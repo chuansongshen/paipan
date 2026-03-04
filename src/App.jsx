@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { getPaiPan } from './utils/qimen';
 import { getDaLiuRenPaiPan } from './utils/daliuren';
 import { getLiuYaoPaiPan } from './utils/liuyao';
@@ -58,40 +58,34 @@ function App() {
   const [appMode, setAppMode] = useState('qimen'); // 'qimen', 'daliuren', 'liuyao', 'bazi'
   const [birthYear, setBirthYear] = useState(2000);
   const [gender, setGender] = useState('男'); // '男' or '女'
-  const [panData, setPanData] = useState(null);
   
   // Liu Yao specific states
   const [liuyaoInputMode, setLiuyaoInputMode] = useState('time'); // 'time' or 'manual'
   const [manualYao, setManualYao] = useState([7, 7, 7, 7, 7, 7]); // Default to all 少阳
 
-  useEffect(() => {
-    calculate();
-  }, [date, method, appMode, birthYear, gender, liuyaoInputMode, manualYao]);
-
-  const calculate = () => {
+  const panData = useMemo(() => {
     try {
       const d = date.toDate();
-      let data;
       if (appMode === 'qimen') {
-        data = getPaiPan(d, method);
+        return getPaiPan(d, method);
       } else if (appMode === 'daliuren') {
         console.log("Calculating Da Liu Ren for:", d, birthYear, gender);
-        data = getDaLiuRenPaiPan(d, birthYear || 2000, gender);
+        return getDaLiuRenPaiPan(d, birthYear || 2000, gender);
       } else if (appMode === 'liuyao') {
         console.log("Calculating Liu Yao for:", d, birthYear, liuyaoInputMode);
         const yaoInput = liuyaoInputMode === 'manual' ? manualYao : null;
-        data = getLiuYaoPaiPan(d, birthYear || 2000, yaoInput);
+        return getLiuYaoPaiPan(d, birthYear || 2000, yaoInput, gender);
       } else if (appMode === 'bazi') {
         console.log("Calculating Ba Zi for:", d, gender);
         // For Ba Zi, the selected date IS the birth date, so use d.getFullYear()
-        data = getBaZiPaiPan(d, d.getFullYear(), gender);
+        return getBaZiPaiPan(d, d.getFullYear(), gender);
       }
-      setPanData(data);
+      return null;
     } catch (e) {
       console.error("Calculation Error:", e);
-      setPanData({ error: e.message });
+      return { error: e.message };
     }
-  };
+  }, [appMode, birthYear, date, gender, liuyaoInputMode, manualYao, method]);
 
   const formatPanData = () => {
     if (!panData || panData.error) return '暂无数据';
@@ -183,13 +177,16 @@ function App() {
       return text;
     } else if (appMode === 'liuyao') {
       // Liu Yao Text Format
+      const movingText = panData.movingYaos && panData.movingYaos.length > 0
+        ? panData.movingYaos.join('、')
+        : panData.movingYao;
       let text = '你是一个精通六爻的高手，请基于下面的排盘信息，分析一下【*********你的问题*********】，排盘信息如下：\n\n';
       text += '========== 六爻排盘 ==========\n\n';
       text += `求测年命: ${panData.benMing} (${gender})  行年: ${panData.xingNian}\n`;
       text += `日期: ${panData.dateStr}\n`;
       text += `干支: ${panData.ganZhi.year} ${panData.ganZhi.month} ${panData.ganZhi.day} ${panData.ganZhi.hour}\n`;
       text += `空亡: ${panData.dayXunKong} (日) / ${panData.hourXunKong} (时)\n`;
-      text += `动爻: ${panData.movingYao}爻\n\n`;
+      text += `动爻: ${movingText}爻\n\n`;
       
       text += `【本卦】 ${panData.benGua.name}\n`;
       // Add simple representation of lines
@@ -233,7 +230,8 @@ function App() {
       text += '\n=================================';
       return text;
     } else if (appMode === 'bazi') {
-      let text = '你是一个精通四柱八字的高手，现在是2025年年底，请分别用梁湘润、盲派、子平命理等八字理论对下面的八字命盘进行推算，分析一下命主的整体命运情况，考虑身强身弱，分析大运流年和十神关系，体用平衡，分析一下命格的成就如何，分析一下人生的关键节点，分析一下【2026】以及【2027】两年的流年，注意逻辑合理，综合各种信息文本判断准确的关系模型，交叉验证，多次迭代后输出最终正确结果，八字命盘信息如下：\n\n';
+      const currentYear = dayjs().year();
+      let text = `你是一个精通四柱八字的高手，现在是${currentYear}年，请分别用梁湘润、盲派、子平命理等八字理论对下面的八字命盘进行推算，分析一下命主的整体命运情况，考虑身强身弱，分析大运流年和十神关系，体用平衡，分析一下命格的成就如何，分析一下人生的关键节点，分析一下【${currentYear}】以及【${currentYear + 1}】两年的流年，注意逻辑合理，综合各种信息文本判断准确的关系模型，交叉验证，多次迭代后输出最终正确结果，八字命盘信息如下：\n\n`;
       text += '========== 八字排盘 ==========\n\n';
       text += `性别: ${panData.性别}\n`;
       text += `阳历: ${panData.阳历}\n`;
@@ -350,7 +348,6 @@ function App() {
                     onChange={(value) => {
                       if (appMode !== value) {
                         setAppMode(value);
-                        setPanData(null);
                       }
                     }}
                     size="large"

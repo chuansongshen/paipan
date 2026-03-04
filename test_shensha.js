@@ -1,4 +1,4 @@
-import { Lunar, Solar } from 'lunar-javascript';
+import { Lunar } from 'lunar-javascript';
 
 const date = new Date();
 const lunar = Lunar.fromDate(date);
@@ -28,3 +28,4 @@ shenShaList.forEach(method => {
 // Check DaYun/Yun for Shen Sha
 const yun = eightChar.getYun(1);
 console.log('Yun created');
+console.log('Yun start age:', yun.getStartYear?.());
