@@ -16,6 +16,7 @@
     "antd": "^6.1.2",
     "classnames": "^2.5.1",
     "dayjs": "^1.11.19",
+    "iztro": "^2.5.8",
     "lunar-javascript": "^1.7.7",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
