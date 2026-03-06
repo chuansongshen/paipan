@@ -1,5 +1,6 @@
 import { astro } from 'iztro';
 import { resolveZiWeiStarBrightness } from './ziwei_brightness.js';
+import { buildZiWeiLunarMeta } from './ziwei_calendar.js';
 import { getZiWeiPalaceDisplayName, getZiWeiStarDisplayName } from './ziwei_naming.js';
 
 const LOGGER_PREFIX = '[ZiWei]';
@@ -654,6 +655,7 @@ export function getZiWeiPaiPan(date, gender = '男', targetDate = new Date()) {
     const astrolabe = astro.bySolar(solarDate, birthTimeIndex, gender, true, 'zh-CN');
     const horoscope = astrolabe.horoscope(now, horoscopeTimeIndex);
     const palaces = appendZiWeiCompanionStars(astrolabe.palaces.map(formatPalace));
+    const lunarMeta = buildZiWeiLunarMeta(date, astrolabe.chineseDate);
     const resolvedSoul = resolveZiWeiSoul(astrolabe.earthlyBranchOfSoulPalace, astrolabe.soul);
     const birthMutagenSummary = formatBirthMutagenSummary(palaces);
     const yearlyMutagenSummary = formatHoroscopeMutagenSummary(palaces, horoscope.yearly);
@@ -691,6 +693,9 @@ export function getZiWeiPaiPan(date, gender = '男', targetDate = new Date()) {
       birthTimeIndex,
       birthDateInfo: formatDateInfo(date),
       birthDateTime: formatDateTime(date),
+      lunarTimeText: lunarMeta.lunarTimeText,
+      seasonalFourPillars: lunarMeta.seasonalFourPillars,
+      normalFourPillars: lunarMeta.normalFourPillars,
       horoscopeTargetDateTime: formatDateTime(now),
       horoscopeTargetTimeIndex: horoscopeTimeIndex,
       palaces,

@@ -439,6 +439,19 @@ const ZiWeiDisk = ({
   const selectedYearlyText = selectedYearlyOption
     ? `${selectedYearlyOption.primaryLabel} · ${selectedYearlyOption.secondaryLabel}`
     : '未选择';
+  const summaryItems = [
+    ['命主', data.soul, true],
+    ['身主', data.body, true],
+    ['命宫', data.earthlyBranchOfSoulPalace, false],
+    ['身宫', data.earthlyBranchOfBodyPalace, false],
+    ['生肖', data.zodiac, false],
+    ['星座', data.sign, false],
+    ['时辰', data.time, false],
+    ['五行局', data.fiveElementsClass, false],
+    ['公历时间', data.birthDateTime || '未提供', false],
+    ['农历时间', data.lunarTimeText || '未提供', false],
+    ['节气四柱', data.seasonalFourPillars || '未提供', false]
+  ];
   const visibleMutagenScopes = [
     'birth',
     ...(hasDecadalSelection ? ['decadal'] : []),
@@ -579,57 +592,7 @@ const ZiWeiDisk = ({
         </div>
 
         <div className="ziwei-summary__grid">
-          {[
-            ['命主', data.soul, true],
-            ['身主', data.body, true],
-            ['命宫', data.earthlyBranchOfSoulPalace, false],
-            ['身宫', data.earthlyBranchOfBodyPalace, false],
-            ['生肖', data.zodiac, false],
-            ['星座', data.sign, false],
-            ['时辰', data.time, false],
-            ['五行局', data.fiveElementsClass, false]
-          ].map(([label, value, strong]) => renderSummaryItem(label, value, strong))}
-        </div>
-
-        <div className="ziwei-summary__focus">
-          <div className="ziwei-focus-card">
-            <span className="ziwei-focus-card__label">盘面状态</span>
-            <strong className="ziwei-focus-card__value">
-              {isBirthChart ? '本命盘' : targetModeLabel}
-            </strong>
-            <span className="ziwei-focus-card__meta">
-              {isBirthChart
-                ? '默认显示出生时间盘，大运流年流月流日均未选中'
-                : `目标时间 ${targetDateText}`}
-            </span>
-          </div>
-          <div className="ziwei-focus-card">
-            <span className="ziwei-focus-card__label">生年四化</span>
-            <strong className="ziwei-focus-card__value">
-              {birthMutagenText}
-            </strong>
-            <span className="ziwei-focus-card__meta">
-              以出生宫位为准，可直接对照宫位内的禄权科忌标签
-            </span>
-          </div>
-          <div className="ziwei-focus-card">
-            <span className="ziwei-focus-card__label">目标大限四化</span>
-            <strong className="ziwei-focus-card__value">
-              {decadalMutagenText}
-            </strong>
-            <span className="ziwei-focus-card__meta">
-              {hasDecadalSelection ? selectedDecadalText : '未选大限前不显示目标大限四化'}
-            </span>
-          </div>
-          <div className="ziwei-focus-card">
-            <span className="ziwei-focus-card__label">目标流年四化</span>
-            <strong className="ziwei-focus-card__value">
-              {yearlyMutagenText}
-            </strong>
-            <span className="ziwei-focus-card__meta">
-              {hasYearlySelection ? selectedYearlyText : '请先选大限，再选流年'}
-            </span>
-          </div>
+          {summaryItems.map(([label, value, strong]) => renderSummaryItem(label, value, strong))}
         </div>
       </section>
 

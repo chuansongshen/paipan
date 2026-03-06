@@ -84,48 +84,13 @@
 .ziwei-summary__item-value {
   color: #374151;
   font-size: 15px;
+  word-break: break-word;
+  line-height: 1.6;
 }
 
 .ziwei-summary__item-value--strong {
   color: var(--ziwei-accent);
   font-weight: 700;
-}
-
-.ziwei-summary__focus {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.ziwei-focus-card {
-  padding: 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 241, 230, 0.88));
-  border: 1px solid rgba(222, 207, 182, 0.9);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ziwei-focus-card__label {
-  font-size: 12px;
-  color: #8a7a62;
-}
-
-.ziwei-focus-card__value {
-  color: var(--ziwei-accent);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.55;
-  word-break: break-word;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif SC', serif;
-}
-
-.ziwei-focus-card__meta {
-  color: #4b5563;
-  font-size: 12px;
-  line-height: 1.55;
 }
 
 .ziwei-board-shell {
@@ -577,7 +542,6 @@
 
 @media (max-width: 991px) {
   .ziwei-summary__grid,
-  .ziwei-summary__focus,
   .ziwei-target-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -609,7 +573,6 @@
   }
 
   .ziwei-summary__grid,
-  .ziwei-summary__focus,
   .ziwei-target-grid {
     grid-template-columns: 1fr;
   }

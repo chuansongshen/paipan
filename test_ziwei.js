@@ -401,6 +401,9 @@ const run = () => {
     { year: 2000, month: 8, day: 16, hour: 3, minute: 0 },
     '紫微排盘结果应保留出生钟表时间供复制文本复用'
   );
+  assert.equal(panData.lunarTimeText, '庚辰年七月十七日寅时', '紫微排盘结果应提供农历时间');
+  assert.equal(panData.seasonalFourPillars, '庚辰 甲申 丙午 庚寅', '紫微排盘结果应提供节气四柱');
+  assert.equal(panData.normalFourPillars, '庚辰 甲申 丙午 庚寅', '紫微排盘结果应保留非节气四柱');
 
   console.log('[test_ziwei] 所有断言通过');
 };

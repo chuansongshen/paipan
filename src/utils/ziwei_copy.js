@@ -1,4 +1,7 @@
-import { Lunar } from 'lunar-javascript';
+import {
+  buildZiWeiLunarMeta,
+  resolveZiWeiBirthClockDate
+} from './ziwei_calendar.js';
 import { getZiWeiStarDisplayName } from './ziwei_naming.js';
 
 const LOGGER_PREFIX = '[ZiWeiCopy]';
@@ -247,30 +250,6 @@ const ANALYSIS_PROMPT_LINES = [
 
 const padNumber = (value) => String(value).padStart(2, '0');
 
-const resolveBirthClockDate = (panData) => {
-  const birthDateInfo = panData?.birthDateInfo;
-
-  if (!birthDateInfo || typeof birthDateInfo !== 'object') {
-    console.warn(`${LOGGER_PREFIX} 缺少出生时间信息，复制文本将回退为现有日期字段`);
-    return null;
-  }
-
-  const {
-    year,
-    month,
-    day,
-    hour,
-    minute
-  } = birthDateInfo;
-
-  if (![year, month, day, hour, minute].every(Number.isFinite)) {
-    console.warn(`${LOGGER_PREFIX} 出生时间信息不完整，复制文本将回退为现有日期字段`, birthDateInfo);
-    return null;
-  }
-
-  return new Date(year, month - 1, day, hour, minute, 0, 0);
-};
-
 const formatClockDateTime = (date) => {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     return '未提供';
@@ -309,15 +288,6 @@ const buildTrueSolarDate = (date, longitude = COPY_DEFAULT_LONGITUDE) => {
 };
 
 const formatLongitude = (longitude = COPY_DEFAULT_LONGITUDE) => longitude.toFixed(3);
-
-const normalizeSpaceSeparatedText = (text) => {
-  if (typeof text !== 'string') {
-    return '未提供';
-  }
-
-  const normalizedText = text.trim().replace(/\s+/g, ' ');
-  return normalizedText || '未提供';
-};
 
 const appendPalaceSuffix = (palaceName) => {
   if (typeof palaceName !== 'string') {
@@ -442,35 +412,6 @@ const formatDecadalRange = (range = []) => {
   return `${range[0]}~${range[1]}虚岁`;
 };
 
-const buildLunarMeta = (birthDate, panData) => {
-  if (!(birthDate instanceof Date) || Number.isNaN(birthDate.getTime())) {
-    return {
-      lunarTimeText: '未提供',
-      seasonalFourPillars: '未提供',
-      normalFourPillars: normalizeSpaceSeparatedText(panData?.chineseDate),
-      childYearDouJun: '未提供'
-    };
-  }
-
-  const lunar = Lunar.fromDate(birthDate);
-  const timeBranch = lunar.getTimeZhi();
-  const timeBranchIndex = BRANCH_ORDER.indexOf(timeBranch);
-  const lunarMonth = Math.abs(Number(lunar.getMonth()));
-  const lunarTimeText = `${lunar.getYearInGanZhiExact()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}日${timeBranch}时`;
-  const seasonalFourPillars = lunar.getBaZi().join(' ');
-  const normalFourPillars = normalizeSpaceSeparatedText(panData?.chineseDate);
-  const childYearDouJun = timeBranchIndex >= 0 && lunarMonth > 0
-    ? BRANCH_ORDER[(lunarMonth - 1 + timeBranchIndex) % 12]
-    : '未提供';
-
-  return {
-    lunarTimeText,
-    seasonalFourPillars,
-    normalFourPillars,
-    childYearDouJun
-  };
-};
-
 const formatPalaceHeader = (palace) => {
   const palaceLabel = appendPalaceSuffix(palace?.name);
   const suffixes = [];
@@ -512,9 +453,9 @@ export const buildZiWeiCopyText = (panData) => {
       throw new Error('紫微斗数排盘数据无效');
     }
 
-    const birthDate = resolveBirthClockDate(panData);
+    const birthDate = resolveZiWeiBirthClockDate(panData?.birthDateInfo);
     const trueSolarDate = buildTrueSolarDate(birthDate, COPY_DEFAULT_LONGITUDE);
-    const lunarMeta = buildLunarMeta(birthDate, panData);
+    const lunarMeta = buildZiWeiLunarMeta(birthDate, panData?.chineseDate);
     const yearlyAgeMap = buildYearlyAgeMap(panData);
     const palaces = sortPalacesForCopy(panData.palaces);
     const lines = [
