@@ -7,6 +7,20 @@ const ZIWEI_ASTRO_CONFIG = {
   algorithm: 'zhongzhou'
 };
 const ZIWEI_BRANCH_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const ZIWEI_SOUL_STAR_BY_BRANCH = {
+  '子': '贪狼',
+  '丑': '巨门',
+  '寅': '禄存',
+  '卯': '文曲',
+  '辰': '廉贞',
+  '巳': '武曲',
+  '午': '破军',
+  '未': '武曲',
+  '申': '廉贞',
+  '酉': '文曲',
+  '戌': '禄存',
+  '亥': '巨门'
+};
 const ZIWEI_COMPANION_STAR_RULES = [
   { sourceName: '旬空', companionName: '副旬' },
   { sourceName: '截空', companionName: '副截' }
@@ -533,6 +547,32 @@ const validateInput = (date, gender, targetDate) => {
   }
 };
 
+const resolveZiWeiSoul = (earthlyBranchOfSoulPalace, fallbackSoul = '') => {
+  try {
+    if (!earthlyBranchOfSoulPalace) {
+      console.warn(`${LOGGER_PREFIX} 命宫地支缺失，回退到底层命主结果`, {
+        fallbackSoul
+      });
+      return fallbackSoul;
+    }
+
+    const resolvedSoul = ZIWEI_SOUL_STAR_BY_BRANCH[earthlyBranchOfSoulPalace];
+
+    if (!resolvedSoul) {
+      console.warn(`${LOGGER_PREFIX} 命宫地支未命中命主映射，回退到底层命主结果`, {
+        earthlyBranchOfSoulPalace,
+        fallbackSoul
+      });
+      return fallbackSoul;
+    }
+
+    return resolvedSoul;
+  } catch (error) {
+    console.error(`${LOGGER_PREFIX} 解析命主失败，回退到底层命主结果`, error);
+    return fallbackSoul;
+  }
+};
+
 const getNextEarthlyBranch = (earthlyBranch) => {
   const branchIndex = ZIWEI_BRANCH_ORDER.indexOf(earthlyBranch);
 
@@ -614,6 +654,7 @@ export function getZiWeiPaiPan(date, gender = '男', targetDate = new Date()) {
     const astrolabe = astro.bySolar(solarDate, birthTimeIndex, gender, true, 'zh-CN');
     const horoscope = astrolabe.horoscope(now, horoscopeTimeIndex);
     const palaces = appendZiWeiCompanionStars(astrolabe.palaces.map(formatPalace));
+    const resolvedSoul = resolveZiWeiSoul(astrolabe.earthlyBranchOfSoulPalace, astrolabe.soul);
     const birthMutagenSummary = formatBirthMutagenSummary(palaces);
     const yearlyMutagenSummary = formatHoroscopeMutagenSummary(palaces, horoscope.yearly);
     const decadalMutagenSummary = formatHoroscopeMutagenSummary(palaces, horoscope.decadal);
@@ -644,7 +685,7 @@ export function getZiWeiPaiPan(date, gender = '男', targetDate = new Date()) {
       zodiac: astrolabe.zodiac,
       earthlyBranchOfSoulPalace: astrolabe.earthlyBranchOfSoulPalace,
       earthlyBranchOfBodyPalace: astrolabe.earthlyBranchOfBodyPalace,
-      soul: astrolabe.soul,
+      soul: resolvedSoul,
       body: astrolabe.body,
       fiveElementsClass: astrolabe.fiveElementsClass,
       birthTimeIndex,
@@ -676,7 +717,9 @@ export function getZiWeiPaiPan(date, gender = '男', targetDate = new Date()) {
       solarDate: result.solarDate,
       time: result.time,
       palaceCount: result.palaces.length,
-      horoscopeYear: result.horoscope.yearly.heavenlyStem + result.horoscope.yearly.earthlyBranch
+      horoscopeYear: result.horoscope.yearly.heavenlyStem + result.horoscope.yearly.earthlyBranch,
+      soul: result.soul,
+      soulByIztro: astrolabe.soul
     });
 
     return result;

@@ -31,8 +31,10 @@ const run = () => {
   const sampleDate = new Date(2000, 7, 16, 3, 0, 0);
   const targetDate = new Date(2026, 2, 6, 10, 0, 0);
   const currentPanDate = new Date(2026, 2, 6, 14, 53, 0);
+  const wenmoSoulAlignedDate = new Date(1987, 1, 16, 2, 0, 0);
   const panData = getZiWeiPaiPan(sampleDate, '男', targetDate);
   const currentPanData = getZiWeiPaiPan(currentPanDate, '男', currentPanDate);
+  const wenmoSoulAlignedPanData = getZiWeiPaiPan(wenmoSoulAlignedDate, '男', targetDate);
   const copyText = buildZiWeiCopyText(panData);
   const decadalOptions = buildZiWeiDecadalOptions(panData);
   const currentDecadalOption = decadalOptions.find((item) => item.isCurrent) || null;
@@ -270,8 +272,11 @@ const run = () => {
   assert.equal(panData.gender, '男');
   assert.equal(panData.horoscopeTargetDateTime, '2026-03-06 10:00', '应输出固定的运限目标时间');
   assert.equal(panData.palaces.length, 12, '紫微斗数应返回十二宫');
+  assert.equal(panData.soul, '破军', '命主应按命宫地支映射，和文墨天机口径保持一致');
   assert.ok(panData.soulPalace, '应存在命宫');
   assert.ok(panData.bodyPalace, '应存在身宫');
+  assert.equal(wenmoSoulAlignedPanData.soul, '巨门', '1987-02-16 02:00 的命主应为巨门');
+  assert.equal(wenmoSoulAlignedPanData.body, '天同', '1987-02-16 02:00 的身主应保持为天同');
   assert.equal(panData.palaces.some((palace) => palace.name === '仆役'), false, '宫位名称不应再显示为仆役');
   assert.equal(panData.palaces.some((palace) => palace.name === '交友'), true, '宫位名称应统一显示为交友');
   assert.equal(findCurrentStar('子女', '截空').brightness, '陷', '当前盘应使用中州派截空命名');
@@ -342,7 +347,7 @@ const run = () => {
   assert.ok(copyText.includes('│ ├真太阳时 : 2000-8-16 02:56'), '复制文本应输出推导后的真太阳时');
   assert.ok(copyText.includes('│ ├节气四柱 : 庚辰 甲申 丙午 庚寅'), '复制文本应输出节气四柱');
   assert.ok(copyText.includes('│ ├非节气四柱 : 庚辰 甲申 丙午 庚寅'), '复制文本应输出非节气四柱');
-  assert.ok(copyText.includes('│ └身主:文昌; 命主:廉贞; 子年斗君:申; 身宫:戌'), '复制文本应输出身主、命主、斗君与身宫');
+  assert.ok(copyText.includes('│ └身主:文昌; 命主:破军; 子年斗君:申; 身宫:戌'), '复制文本应输出按文墨口径修正后的身主、命主、斗君与身宫');
   assert.ok(copyText.includes('│ ├迁移宫[戊子]'), '复制文本中的十二宫应按地支顺序输出');
   assert.ok(copyText.includes('太阴[庙][生年科][自化禄]'), '复制文本应在星曜后带出亮度、生年四化与自化标签');
   assert.ok(copyText.includes('太岁煞禄'), '复制文本应使用文墨风格的太岁煞禄标签');
