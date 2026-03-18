@@ -32,6 +32,46 @@ const YUE_JIANG_MAP = {
   '大寒': '子', '立春': '子'
 };
 
+const WU_XING = {
+  '甲': 'wood', '乙': 'wood', '寅': 'wood', '卯': 'wood',
+  '丙': 'fire', '丁': 'fire', '巳': 'fire', '午': 'fire',
+  '戊': 'earth', '己': 'earth', '辰': 'earth', '戌': 'earth', '丑': 'earth', '未': 'earth',
+  '庚': 'metal', '辛': 'metal', '申': 'metal', '酉': 'metal',
+  '壬': 'water', '癸': 'water', '亥': 'water', '子': 'water'
+};
+
+const YANG_DAY_GAN = new Set(['甲', '丙', '戊', '庚', '壬']);
+const YANG_ZHI = new Set(['子', '寅', '辰', '午', '申', '戌']);
+const FU_YIN_SELF_XING = new Set(['辰', '午', '酉', '亥']);
+const FU_YIN_XING_MAP = {
+  '子': '卯',
+  '卯': '子',
+  '寅': '巳',
+  '巳': '申',
+  '申': '寅',
+  '丑': '戌',
+  '戌': '未',
+  '未': '丑',
+  '辰': '辰',
+  '午': '午',
+  '酉': '酉',
+  '亥': '亥'
+};
+const LIU_CHONG_MAP = {
+  '子': '午',
+  '丑': '未',
+  '寅': '申',
+  '卯': '酉',
+  '辰': '戌',
+  '巳': '亥',
+  '午': '子',
+  '未': '丑',
+  '申': '寅',
+  '酉': '卯',
+  '戌': '辰',
+  '亥': '巳'
+};
+
 // Get ZHI index
 const getZhiIdx = (z) => ZHI.indexOf(z);
 // Get GAN index
@@ -597,29 +637,124 @@ function getYueJiangFromTerm(term) {
   return map[term] || '子'; // Default fallback
 }
 
+function overcomes(a, b) {
+  const wa = WU_XING[a];
+  const wb = WU_XING[b];
+
+  if (!wa || !wb) {
+    return false;
+  }
+
+  if (wa === 'wood' && wb === 'earth') return true;
+  if (wa === 'earth' && wb === 'water') return true;
+  if (wa === 'water' && wb === 'fire') return true;
+  if (wa === 'fire' && wb === 'metal') return true;
+  if (wa === 'metal' && wb === 'wood') return true;
+  return false;
+}
+
+function isFuYinJu(tianPan) {
+  return Array.isArray(tianPan) &&
+    tianPan.length === ZHI.length &&
+    tianPan.every((zhi, index) => zhi === ZHI[index]);
+}
+
+function isFuYinSelfXing(zhi) {
+  return FU_YIN_SELF_XING.has(zhi);
+}
+
+function getFuYinXing(zhi) {
+  return FU_YIN_XING_MAP[zhi] || '';
+}
+
+function getLiuChong(zhi) {
+  return LIU_CHONG_MAP[zhi] || '';
+}
+
+function createSanChuanResult(branches, dayGanZhi) {
+  return branches.map((zhi) => ({
+    gan: getDunGan(dayGanZhi.substring(0, 1), zhi, dayGanZhi),
+    zhi
+  }));
+}
+
+function getFuYinFaYong(siKe, dayGan) {
+  const ganShang = siKe?.first?.zhi;
+  const zhiShang = siKe?.third?.zhi;
+
+  if (!ganShang || !zhiShang) {
+    throw new Error('伏吟局缺少干上或支上信息');
+  }
+
+  const hasKe = overcomes(dayGan, ganShang) || overcomes(ganShang, dayGan);
+  if (hasKe) {
+    return {
+      chu: ganShang,
+      source: 'gan'
+    };
+  }
+
+  if (YANG_DAY_GAN.has(dayGan)) {
+    return {
+      chu: ganShang,
+      source: 'gan'
+    };
+  }
+
+  return {
+    chu: zhiShang,
+    source: 'zhi'
+  };
+}
+
+function getFuYinSanChuan(siKe, dayGan, dayZhi) {
+  const dayGanZhi = dayGan + dayZhi;
+  const ganShang = siKe?.first?.zhi;
+  const zhiShang = siKe?.third?.zhi;
+  const { chu, source } = getFuYinFaYong(siKe, dayGan);
+
+  if (!ganShang || !zhiShang) {
+    throw new Error('伏吟局缺少干上或支上信息');
+  }
+
+  let zhong = '';
+  if (isFuYinSelfXing(chu)) {
+    zhong = source === 'gan' ? zhiShang : ganShang;
+  } else {
+    zhong = getFuYinXing(chu);
+  }
+
+  if (!zhong) {
+    throw new Error(`伏吟局无法确定中传: 初传=${chu}`);
+  }
+
+  let mo = '';
+  if (isFuYinSelfXing(zhong)) {
+    mo = getLiuChong(zhong);
+  } else {
+    mo = getFuYinXing(zhong);
+  }
+
+  if (!mo) {
+    throw new Error(`伏吟局无法确定末传: 中传=${zhong}`);
+  }
+
+  return createSanChuanResult([chu, zhong, mo], dayGanZhi);
+}
+
 function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
+  if (isFuYinJu(tianPan)) {
+    try {
+      return getFuYinSanChuan(siKe, dayGan, dayZhi);
+    } catch (error) {
+      console.error('[DaLiuRen] 伏吟局取三传失败，回退到常规取传逻辑:', error);
+    }
+  }
+
   // 1. Zei Ke (Overcoming)
   // Check each of the 4 Kes: Lower (Earth) overcomes Upper (Heaven) -> Zei (Bandit)
   // Upper (Heaven) overcomes Lower (Earth) -> Ke (Overcoming)
   // We need 5 Elements relationship
-  const wuxing = {
-    '甲': 'wood', '乙': 'wood', '寅': 'wood', '卯': 'wood',
-    '丙': 'fire', '丁': 'fire', '巳': 'fire', '午': 'fire',
-    '戊': 'earth', '己': 'earth', '辰': 'earth', '戌': 'earth', '丑': 'earth', '未': 'earth',
-    '庚': 'metal', '辛': 'metal', '申': 'metal', '酉': 'metal',
-    '壬': 'water', '癸': 'water', '亥': 'water', '子': 'water'
-  };
-  
-  const overcomes = (a, b) => { // Does a overcome b?
-    const wa = wuxing[a];
-    const wb = wuxing[b];
-    if (wa === 'wood' && wb === 'earth') return true;
-    if (wa === 'earth' && wb === 'water') return true;
-    if (wa === 'water' && wb === 'fire') return true;
-    if (wa === 'fire' && wb === 'metal') return true;
-    if (wa === 'metal' && wb === 'wood') return true;
-    return false;
-  };
 
   const kes = [siKe.first, siKe.second, siKe.third, siKe.fourth];
   const zeis = []; // Lower overcomes Upper (Earth overcomes Heaven) - actually usually called "Zei" (Bandit)
@@ -699,9 +834,9 @@ function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
       chuChuan = deepest[0].zhi;
     } else {
       // Multiple with same depth - use Bi Yong (Yin/Yang matching)
-      const dayYang = ['甲', '丙', '戊', '庚', '壬'].includes(dayGan);
+      const dayYang = YANG_DAY_GAN.has(dayGan);
       const matches = deepest.filter(c => {
-        const zhiYang = ['子', '寅', '辰', '午', '申', '戌'].includes(c.zhi);
+        const zhiYang = YANG_ZHI.has(c.zhi);
         return dayYang === zhiYang;
       });
       
