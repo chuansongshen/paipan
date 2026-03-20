@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getHealthHandler } from '../routes/healthRoutes.js';
+import { getHealthHandler } from '../../server/routes/healthRoutes.js';
 
 function createMockResponse() {
   return {

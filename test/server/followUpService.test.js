@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createFollowUpService } from '../services/followUpService.js';
+import { createFollowUpService } from '../../server/services/followUpService.js';
 
 describe('createFollowUpService', () => {
   it('生成追问回答并扣减次数', async () => {

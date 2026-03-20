@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import dayjs from 'dayjs';
-import { getZiWeiPaiPan, getZiWeiTimeIndex } from './src/utils/ziwei.js';
-import { resolveZiWeiStarBrightness } from './src/utils/ziwei_brightness.js';
-import { buildZiWeiCopyText } from './src/utils/ziwei_copy.js';
-import { getZiWeiSectionLabel, getZiWeiStarDisplayName } from './src/utils/ziwei_naming.js';
+import { getZiWeiPaiPan, getZiWeiTimeIndex } from '../../src/utils/ziwei.js';
+import { resolveZiWeiStarBrightness } from '../../src/utils/ziwei_brightness.js';
+import { buildZiWeiCopyText } from '../../src/utils/ziwei_copy.js';
+import { getZiWeiSectionLabel, getZiWeiStarDisplayName } from '../../src/utils/ziwei_naming.js';
 import {
   getZiWeiPalaceScopeLabels,
   getZiWeiPalaceDisplayStars,
@@ -12,7 +12,7 @@ import {
   getZiWeiStarDisplayMeta,
   getZiWeiVerticalTextTokens,
   getZiWeiVisibleStars
-} from './src/utils/ziwei_display.js';
+} from '../../src/utils/ziwei_display.js';
 import {
   buildZiWeiDecadalOptions,
   buildZiWeiDailyOptions,
@@ -25,7 +25,7 @@ import {
   shiftZiWeiTargetDateByAge,
   shiftZiWeiTargetDateByDay,
   shiftZiWeiTargetDateByMonth
-} from './src/utils/ziwei_app.js';
+} from '../../src/utils/ziwei_app.js';
 
 const run = () => {
   const sampleDate = new Date(2000, 7, 16, 3, 0, 0);

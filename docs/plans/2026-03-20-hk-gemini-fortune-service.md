@@ -17,7 +17,7 @@
 - Create: `server/app.js`
 - Create: `server/server.js`
 - Create: `server/routes/healthRoutes.js`
-- Test: `server/tests/health.test.js`
+- Test: `test/server/health.test.js`
 
 **Step 1: 安装 API 和测试依赖**
 
@@ -104,7 +104,7 @@ app.listen(port, () => {
 Run:
 
 ```bash
-npx vitest run server/tests/health.test.js
+npx vitest run test/server/health.test.js
 ```
 
 Expected: `1 passed`
@@ -112,7 +112,7 @@ Expected: `1 passed`
 **Step 5: Commit**
 
 ```bash
-git add package.json package-lock.json server/app.js server/server.js server/routes/healthRoutes.js server/tests/health.test.js
+git add package.json package-lock.json server/app.js server/server.js server/routes/healthRoutes.js test/server/health.test.js
 git commit -m "feat(api): bootstrap hk backend runtime"
 ```
 
@@ -124,7 +124,7 @@ git commit -m "feat(api): bootstrap hk backend runtime"
 - Create: `server/middleware/errorHandler.js`
 - Create: `server/middleware/requestContext.js`
 - Modify: `server/app.js`
-- Test: `server/tests/errorHandler.test.js`
+- Test: `test/server/errorHandler.test.js`
 
 **Step 1: 写失败的错误响应测试**
 
@@ -157,7 +157,7 @@ describe('error handler', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/errorHandler.test.js
+npx vitest run test/server/errorHandler.test.js
 ```
 
 Expected: FAIL，提示模块缺失或 `registerErrorHandler` 未定义。
@@ -194,7 +194,7 @@ export function registerErrorHandler(app) {
 Run:
 
 ```bash
-npx vitest run server/tests/errorHandler.test.js server/tests/health.test.js
+npx vitest run test/server/errorHandler.test.js test/server/health.test.js
 ```
 
 Expected: 全部通过。
@@ -202,7 +202,7 @@ Expected: 全部通过。
 **Step 5: Commit**
 
 ```bash
-git add server/config/env.js server/config/logger.js server/middleware/errorHandler.js server/middleware/requestContext.js server/app.js server/tests/errorHandler.test.js
+git add server/config/env.js server/config/logger.js server/middleware/errorHandler.js server/middleware/requestContext.js server/app.js test/server/errorHandler.test.js
 git commit -m "feat(api): add config logging and error middleware"
 ```
 
@@ -211,7 +211,7 @@ git commit -m "feat(api): add config logging and error middleware"
 **Files:**
 - Create: `src/utils/fortunePayload.js`
 - Modify: `src/App.jsx`
-- Test: `src/utils/fortunePayload.test.js`
+- Test: `test/src/utils/fortunePayload.test.js`
 
 **Step 1: 写失败的序列化测试**
 
@@ -239,7 +239,7 @@ describe('buildFortunePayload', () => {
 Run:
 
 ```bash
-npx vitest run src/utils/fortunePayload.test.js
+npx vitest run test/src/utils/fortunePayload.test.js
 ```
 
 Expected: FAIL，提示 `buildFortunePayload` 不存在。
@@ -276,7 +276,7 @@ export function buildFortunePayload(mode, panData) {
 Run:
 
 ```bash
-npx vitest run src/utils/fortunePayload.test.js
+npx vitest run test/src/utils/fortunePayload.test.js
 npm run build
 ```
 
@@ -285,7 +285,7 @@ Expected: 测试通过，前端构建成功。
 **Step 5: Commit**
 
 ```bash
-git add src/utils/fortunePayload.js src/utils/fortunePayload.test.js src/App.jsx
+git add src/utils/fortunePayload.js test/src/utils/fortunePayload.test.js src/App.jsx
 git commit -m "feat(web): add fortune payload serializer"
 ```
 
@@ -295,7 +295,7 @@ git commit -m "feat(web): add fortune payload serializer"
 - Create: `server/services/vertexAiClient.js`
 - Create: `server/services/promptComposer.js`
 - Create: `server/services/reportTemplateCatalog.js`
-- Test: `server/tests/vertexAiClient.test.js`
+- Test: `test/server/vertexAiClient.test.js`
 
 **Step 1: 写失败的模型客户端测试**
 
@@ -336,7 +336,7 @@ describe('vertex ai client', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/vertexAiClient.test.js
+npx vitest run test/server/vertexAiClient.test.js
 ```
 
 Expected: FAIL，提示模块缺失。
@@ -378,7 +378,7 @@ export function composeReportPrompt({ mode, question, payload }) {
 Run:
 
 ```bash
-npx vitest run server/tests/vertexAiClient.test.js
+npx vitest run test/server/vertexAiClient.test.js
 ```
 
 Expected: 通过。
@@ -386,7 +386,7 @@ Expected: 通过。
 **Step 5: Commit**
 
 ```bash
-git add server/services/vertexAiClient.js server/services/promptComposer.js server/services/reportTemplateCatalog.js server/tests/vertexAiClient.test.js
+git add server/services/vertexAiClient.js server/services/promptComposer.js server/services/reportTemplateCatalog.js test/server/vertexAiClient.test.js
 git commit -m "feat(api): add vertex ai client and prompt composer"
 ```
 
@@ -397,7 +397,7 @@ git commit -m "feat(api): add vertex ai client and prompt composer"
 - Create: `server/services/reportService.js`
 - Create: `server/routes/reportRoutes.js`
 - Modify: `server/app.js`
-- Test: `server/tests/reportRoutes.test.js`
+- Test: `test/server/reportRoutes.test.js`
 
 **Step 1: 写失败的报告接口测试**
 
@@ -442,7 +442,7 @@ describe('POST /api/report/create', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/reportRoutes.test.js
+npx vitest run test/server/reportRoutes.test.js
 ```
 
 Expected: FAIL。
@@ -475,7 +475,7 @@ export function createReportService({ vertexAiClient, composePrompt }) {
 Run:
 
 ```bash
-npx vitest run server/tests/reportRoutes.test.js server/tests/vertexAiClient.test.js
+npx vitest run test/server/reportRoutes.test.js test/server/vertexAiClient.test.js
 ```
 
 Expected: 通过。
@@ -483,7 +483,7 @@ Expected: 通过。
 **Step 5: Commit**
 
 ```bash
-git add server/validators/reportSchemas.js server/services/reportService.js server/routes/reportRoutes.js server/app.js server/tests/reportRoutes.test.js
+git add server/validators/reportSchemas.js server/services/reportService.js server/routes/reportRoutes.js server/app.js test/server/reportRoutes.test.js
 git commit -m "feat(api): add paid report creation route"
 ```
 
@@ -496,7 +496,7 @@ git commit -m "feat(api): add paid report creation route"
 - Create: `server/repositories/reportRepository.js`
 - Create: `server/repositories/orderRepository.js`
 - Create: `server/repositories/followUpRepository.js`
-- Test: `server/tests/reportRepository.test.js`
+- Test: `test/server/reportRepository.test.js`
 
 **Step 1: 写失败的仓储测试**
 
@@ -528,7 +528,7 @@ describe('report repository', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/reportRepository.test.js
+npx vitest run test/server/reportRepository.test.js
 ```
 
 Expected: FAIL。
@@ -569,7 +569,7 @@ export function createReportRepository(db) {
 Run:
 
 ```bash
-npx vitest run server/tests/reportRepository.test.js
+npx vitest run test/server/reportRepository.test.js
 node server/scripts/migrate.js
 ```
 
@@ -578,7 +578,7 @@ Expected: 测试通过，迁移脚本输出成功日志。
 **Step 5: Commit**
 
 ```bash
-git add server/db/client.js server/db/migrations/001_initial_schema.sql server/scripts/migrate.js server/repositories/reportRepository.js server/repositories/orderRepository.js server/repositories/followUpRepository.js server/tests/reportRepository.test.js
+git add server/db/client.js server/db/migrations/001_initial_schema.sql server/scripts/migrate.js server/repositories/reportRepository.js server/repositories/orderRepository.js server/repositories/followUpRepository.js test/server/reportRepository.test.js
 git commit -m "feat(api): add postgres persistence layer"
 ```
 
@@ -589,7 +589,7 @@ git commit -m "feat(api): add postgres persistence layer"
 - Create: `server/validators/orderSchemas.js`
 - Create: `server/routes/orderRoutes.js`
 - Modify: `server/app.js`
-- Test: `server/tests/orderRoutes.test.js`
+- Test: `test/server/orderRoutes.test.js`
 
 **Step 1: 写失败的下单接口测试**
 
@@ -628,7 +628,7 @@ describe('POST /api/orders', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/orderRoutes.test.js
+npx vitest run test/server/orderRoutes.test.js
 ```
 
 Expected: FAIL。
@@ -658,7 +658,7 @@ export function createOrderService({ wechatPayClient }) {
 Run:
 
 ```bash
-npx vitest run server/tests/orderRoutes.test.js
+npx vitest run test/server/orderRoutes.test.js
 ```
 
 Expected: 通过。
@@ -666,7 +666,7 @@ Expected: 通过。
 **Step 5: Commit**
 
 ```bash
-git add server/services/wechatPayClient.js server/validators/orderSchemas.js server/routes/orderRoutes.js server/app.js server/tests/orderRoutes.test.js
+git add server/services/wechatPayClient.js server/validators/orderSchemas.js server/routes/orderRoutes.js server/app.js test/server/orderRoutes.test.js
 git commit -m "feat(api): add wechat pay order flow"
 ```
 
@@ -676,7 +676,7 @@ git commit -m "feat(api): add wechat pay order flow"
 - Create: `server/services/followUpService.js`
 - Create: `server/routes/followUpRoutes.js`
 - Create: `server/validators/followUpSchemas.js`
-- Test: `server/tests/followUpRoutes.test.js`
+- Test: `test/server/followUpRoutes.test.js`
 
 **Step 1: 写失败的追问测试**
 
@@ -711,7 +711,7 @@ describe('POST /api/reports/:reportId/follow-up', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/followUpRoutes.test.js
+npx vitest run test/server/followUpRoutes.test.js
 ```
 
 Expected: FAIL。
@@ -741,7 +741,7 @@ export function createFollowUpService({ vertexAiClient }) {
 Run:
 
 ```bash
-npx vitest run server/tests/followUpRoutes.test.js
+npx vitest run test/server/followUpRoutes.test.js
 ```
 
 Expected: 通过。
@@ -749,7 +749,7 @@ Expected: 通过。
 **Step 5: Commit**
 
 ```bash
-git add server/services/followUpService.js server/routes/followUpRoutes.js server/validators/followUpSchemas.js server/tests/followUpRoutes.test.js
+git add server/services/followUpService.js server/routes/followUpRoutes.js server/validators/followUpSchemas.js test/server/followUpRoutes.test.js
 git commit -m "feat(api): add paid follow-up route"
 ```
 
@@ -759,7 +759,7 @@ git commit -m "feat(api): add paid follow-up route"
 - Create: `server/config/recommendationCatalog.json`
 - Create: `server/services/recommendationService.js`
 - Create: `server/routes/recommendationRoutes.js`
-- Test: `server/tests/recommendationService.test.js`
+- Test: `test/server/recommendationService.test.js`
 
 **Step 1: 写失败的推荐服务测试**
 
@@ -791,7 +791,7 @@ describe('recommendation service', () => {
 Run:
 
 ```bash
-npx vitest run server/tests/recommendationService.test.js
+npx vitest run test/server/recommendationService.test.js
 ```
 
 Expected: FAIL。
@@ -825,7 +825,7 @@ export function createRecommendationService({ catalog }) {
 Run:
 
 ```bash
-npx vitest run server/tests/recommendationService.test.js
+npx vitest run test/server/recommendationService.test.js
 ```
 
 Expected: 通过。
@@ -833,7 +833,7 @@ Expected: 通过。
 **Step 5: Commit**
 
 ```bash
-git add server/config/recommendationCatalog.json server/services/recommendationService.js server/routes/recommendationRoutes.js server/tests/recommendationService.test.js
+git add server/config/recommendationCatalog.json server/services/recommendationService.js server/routes/recommendationRoutes.js test/server/recommendationService.test.js
 git commit -m "feat(api): add recommendation rule engine"
 ```
 
@@ -847,7 +847,7 @@ git commit -m "feat(api): add recommendation rule engine"
 - Create: `src/components/RecommendationPanel.jsx`
 - Create: `src/components/ComplianceNotice.jsx`
 - Modify: `src/App.jsx`
-- Test: `src/components/AiReportPanel.test.jsx`
+- Test: `test/src/components/AiReportPanel.test.jsx`
 
 **Step 1: 写失败的组件交互测试**
 
@@ -877,7 +877,7 @@ describe('AiReportPanel', () => {
 Run:
 
 ```bash
-npx vitest run src/components/AiReportPanel.test.jsx
+npx vitest run test/src/components/AiReportPanel.test.jsx
 ```
 
 Expected: FAIL。
@@ -902,7 +902,7 @@ export default function AiReportPanel({ loading, onUnlock }) {
 Run:
 
 ```bash
-npx vitest run src/components/AiReportPanel.test.jsx
+npx vitest run test/src/components/AiReportPanel.test.jsx
 npm run build
 ```
 
@@ -911,7 +911,7 @@ Expected: 通过，构建成功。
 **Step 5: Commit**
 
 ```bash
-git add src/services/apiClient.js src/hooks/useAiReportFlow.js src/components/AiReportPanel.jsx src/components/AiFollowUpPanel.jsx src/components/RecommendationPanel.jsx src/components/ComplianceNotice.jsx src/components/AiReportPanel.test.jsx src/App.jsx
+git add src/services/apiClient.js src/hooks/useAiReportFlow.js src/components/AiReportPanel.jsx src/components/AiFollowUpPanel.jsx src/components/RecommendationPanel.jsx src/components/ComplianceNotice.jsx test/src/components/AiReportPanel.test.jsx src/App.jsx
 git commit -m "feat(web): add ai report unlock and follow-up panels"
 ```
 
@@ -986,7 +986,7 @@ git commit -m "docs(deploy): add hk deployment and verification checklist"
 ### Task 12: 上线前手动验收
 
 **Files:**
-- Modify: `progress.md`
+- Modify: `docs/worklog/progress.md`
 
 **Step 1: 本地验证免费排盘仍可用**
 
@@ -1035,6 +1035,6 @@ Expected: 返回咨询位和商品位数组。
 **Step 5: Commit**
 
 ```bash
-git add progress.md
+git add docs/worklog/progress.md
 git commit -m "chore: record prelaunch acceptance results"
 ```

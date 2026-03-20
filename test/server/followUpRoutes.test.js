@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createFollowUpHandler } from '../routes/followUpRoutes.js';
+import { createFollowUpHandler } from '../../server/routes/followUpRoutes.js';
 
 function createMockResponse() {
   return {

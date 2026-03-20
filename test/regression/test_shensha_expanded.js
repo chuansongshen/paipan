@@ -1,4 +1,4 @@
-import { getBaZiPaiPan } from './src/utils/bazi.js';
+import { getBaZiPaiPan } from '../../src/utils/bazi.js';
 
 // Test date: 2023-11-20 10:00 (Gui Mao Year, Gui Hai Month, Geng Yin Day, Xin Si Hour)
 // Geng Yin Day:

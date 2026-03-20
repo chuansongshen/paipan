@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRecommendationService } from '../services/recommendationService.js';
+import { createRecommendationService } from '../../server/services/recommendationService.js';
 
 describe('createRecommendationService', () => {
   it('根据标签返回去重后的咨询位和商品位', () => {

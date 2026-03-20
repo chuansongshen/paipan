@@ -3,7 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import RecommendationPanel from './RecommendationPanel.jsx';
+import RecommendationPanel from '../../../src/components/RecommendationPanel.jsx';
 
 let originalMatchMedia;
 

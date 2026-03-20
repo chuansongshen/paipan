@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import process from 'node:process';
-import { getDaLiuRenPaiPan } from './src/utils/daliuren.js';
+import { getDaLiuRenPaiPan } from '../../src/utils/daliuren.js';
 
 const EXPECTED_FU_YIN_SAN_CHUAN = [
   { date: '2026-03-01T22:00:00+08:00', day: '甲戌', sanChuan: ['寅', '巳', '申'] },

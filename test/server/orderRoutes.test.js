@@ -3,7 +3,7 @@ import {
   createGetOrderHandler,
   createMockConfirmOrderHandler,
   createOrderHandler
-} from '../routes/orderRoutes.js';
+} from '../../server/routes/orderRoutes.js';
 
 function createMockResponse() {
   return {

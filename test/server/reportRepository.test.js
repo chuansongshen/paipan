@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createReportRepository } from '../repositories/reportRepository.js';
+import { createReportRepository } from '../../server/repositories/reportRepository.js';
 
 describe('createReportRepository', () => {
   it('写入报告并返回核心字段', async () => {

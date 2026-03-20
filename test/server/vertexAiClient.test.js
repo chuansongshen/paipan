@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createVertexAiClient } from '../services/vertexAiClient.js';
+import { createVertexAiClient } from '../../server/services/vertexAiClient.js';
 
 describe('createVertexAiClient', () => {
   it('归一化 Gemini 文本结果和使用量信息', async () => {

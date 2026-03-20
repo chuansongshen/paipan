@@ -1,4 +1,4 @@
-import { getDaLiuRenPaiPan } from './src/utils/daliuren.js';
+import { getDaLiuRenPaiPan } from '../../src/utils/daliuren.js';
 
 console.log('Testing Zhi Zhi Lookup and Shen Sha Text...\n');
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createReportHandler } from '../routes/reportRoutes.js';
+import { createReportHandler } from '../../server/routes/reportRoutes.js';
 
 function createMockResponse() {
   return {

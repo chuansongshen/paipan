@@ -1,4 +1,4 @@
-import { getDaLiuRenPaiPan } from './src/utils/daliuren.js';
+import { getDaLiuRenPaiPan } from '../../src/utils/daliuren.js';
 
 console.log('Testing Shen Sha Distribution...');
 

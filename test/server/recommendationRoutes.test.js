@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRecommendationHandler } from '../routes/recommendationRoutes.js';
+import { createRecommendationHandler } from '../../server/routes/recommendationRoutes.js';
 
 function createMockResponse() {
   return {

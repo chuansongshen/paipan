@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFortunePayload, isAiInterpretationSupportedMode } from './fortunePayload.js';
+import { buildFortunePayload, isAiInterpretationSupportedMode } from '../../../src/utils/fortunePayload.js';
 
 const sampleBaziData = {
   性别: '男',

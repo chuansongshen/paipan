@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveRecommendationTags } from '../services/recommendationTagger.js';
+import { deriveRecommendationTags } from '../../server/services/recommendationTagger.js';
 
 describe('deriveRecommendationTags', () => {
   it('识别事业类标签', () => {

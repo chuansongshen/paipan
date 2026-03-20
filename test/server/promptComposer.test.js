@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeReportPrompt } from '../services/promptComposer.js';
+import { composeReportPrompt } from '../../server/services/promptComposer.js';
 
 describe('composeReportPrompt', () => {
   it('按模板拼装报告 Prompt', () => {

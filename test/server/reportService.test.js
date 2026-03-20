@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createReportService } from '../services/reportService.js';
+import { createReportService } from '../../server/services/reportService.js';
 
 describe('createReportService', () => {
   it('创建完整报告并持久化', async () => {

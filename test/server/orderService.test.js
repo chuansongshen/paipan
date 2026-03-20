@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createOrderService } from '../services/orderService.js';
+import { createOrderService } from '../../server/services/orderService.js';
 
 describe('createOrderService', () => {
   it('创建待支付订单并返回 mock 支付参数', async () => {

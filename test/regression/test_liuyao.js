@@ -1,4 +1,4 @@
-import { getLiuYaoPaiPan } from './src/utils/liuyao.js';
+import { getLiuYaoPaiPan } from '../../src/utils/liuyao.js';
 
 console.log('Testing Liu Yao Pai Pan...');
 

@@ -1,4 +1,4 @@
-import { getPaiPan } from './src/utils/qimen.js';
+import { getPaiPan } from '../../src/utils/qimen.js';
 
 console.log('Testing Qimen Logic...');
 
