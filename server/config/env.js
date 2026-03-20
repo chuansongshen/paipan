@@ -10,6 +10,9 @@ const envSchema = z.object({
   GEMINI_REPORT_MODEL: z.string().trim().default(''),
   GEMINI_FOLLOW_UP_MODEL: z.string().trim().default(''),
   DATABASE_URL: z.string().trim().default(''),
+  SESSION_COOKIE_NAME: z.string().trim().default('pai_pan_sid'),
+  SESSION_COOKIE_SECRET: z.string().trim().default(''),
+  SESSION_COOKIE_SECURE: z.string().trim().default(''),
   WECHAT_APP_ID: z.string().trim().default(''),
   WECHAT_MCH_ID: z.string().trim().default(''),
   WECHAT_NOTIFY_URL: z.string().trim().default(''),
@@ -45,6 +48,15 @@ export function readEnv(source = process.env) {
     geminiReportModel: parsed.data.GEMINI_REPORT_MODEL,
     geminiFollowUpModel: parsed.data.GEMINI_FOLLOW_UP_MODEL,
     databaseUrl: parsed.data.DATABASE_URL,
+    sessionCookieName: parsed.data.SESSION_COOKIE_NAME,
+    sessionCookieSecret: parsed.data.SESSION_COOKIE_SECRET || (
+      parsed.data.NODE_ENV === 'production'
+        ? ''
+        : 'development-local-session-secret'
+    ),
+    sessionCookieSecure: parsed.data.SESSION_COOKIE_SECURE
+      ? parsed.data.SESSION_COOKIE_SECURE === 'true'
+      : parsed.data.NODE_ENV === 'production',
     wechatAppId: parsed.data.WECHAT_APP_ID,
     wechatMchId: parsed.data.WECHAT_MCH_ID,
     wechatNotifyUrl: parsed.data.WECHAT_NOTIFY_URL,

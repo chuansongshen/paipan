@@ -4,6 +4,8 @@ import { createMemoryRepositories } from '../repositories/memoryRepositories.js'
 import { createFollowUpRepository } from '../repositories/followUpRepository.js';
 import { createOrderRepository } from '../repositories/orderRepository.js';
 import { createReportRepository } from '../repositories/reportRepository.js';
+import { createUserRepository } from '../repositories/userRepository.js';
+import { createAuthService } from '../services/authService.js';
 import { composeReportPrompt } from '../services/promptComposer.js';
 import { createFollowUpService } from '../services/followUpService.js';
 import { createGoogleGenAiClient } from '../services/googleGenAiClient.js';
@@ -12,6 +14,8 @@ import { createOrderService } from '../services/orderService.js';
 import { createRecommendationService } from '../services/recommendationService.js';
 import { deriveRecommendationTags } from '../services/recommendationTagger.js';
 import { createReportService } from '../services/reportService.js';
+import { createSessionService } from '../services/sessionService.js';
+import { createUserService } from '../services/userService.js';
 import { createWechatPayClient } from '../services/wechatPayClient.js';
 
 function buildRepositories({ db, logger }) {
@@ -19,6 +23,7 @@ function buildRepositories({ db, logger }) {
     logger?.info?.('[Api] 检测到 DATABASE_URL，启用 PostgreSQL 仓储');
 
     return {
+      userRepository: createUserRepository(db),
       reportRepository: createReportRepository(db),
       orderRepository: createOrderRepository(db),
       followUpRepository: createFollowUpRepository(db)
@@ -33,6 +38,17 @@ export function createRuntimeServices({ env, logger }) {
   const db = env.databaseUrl ? createDbPool(env) : null;
   const repositories = buildRepositories({ db, logger });
   const genAiClient = createGoogleGenAiClient({ env, logger });
+  const sessionService = createSessionService({ env, logger });
+  const userService = createUserService({
+    logger,
+    userRepository: repositories.userRepository
+  });
+  const authService = createAuthService({
+    env,
+    logger,
+    sessionService,
+    userService
+  });
   const paymentClient = env.paymentBackend === 'wechat'
     ? createWechatPayClient({ env, logger })
     : createMockWechatPayClient({ logger });
@@ -71,6 +87,7 @@ export function createRuntimeServices({ env, logger }) {
 
   return {
     services: {
+      authService,
       orderService,
       reportService,
       followUpService,

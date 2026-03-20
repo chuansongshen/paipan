@@ -3,11 +3,58 @@ function cloneRecord(record) {
 }
 
 export function createMemoryRepositories({ logger } = {}) {
+  const users = new Map();
   const reports = new Map();
   const orders = new Map();
   const followUps = [];
 
   return {
+    userRepository: {
+      async insertUser(user) {
+        const storedRecord = {
+          id: user.id,
+          identity_provider: user.identityProvider,
+          provider_subject: user.providerSubject || null,
+          display_name: user.displayName,
+          created_at: new Date().toISOString(),
+          last_seen_at: new Date().toISOString()
+        };
+
+        users.set(user.id, storedRecord);
+        logger?.debug?.({ userId: user.id }, '[MemoryRepository] 已写入用户');
+
+        return cloneRecord(storedRecord);
+      },
+
+      async findUserById(userId) {
+        return cloneRecord(users.get(userId) || null);
+      },
+
+      async findUserByProvider(identityProvider, providerSubject) {
+        const matchedUser = [...users.values()].find(
+          (user) => (
+            user.identity_provider === identityProvider
+            && user.provider_subject === providerSubject
+          )
+        );
+
+        return cloneRecord(matchedUser || null);
+      },
+
+      async touchUserLastSeen(userId) {
+        const existing = users.get(userId);
+
+        if (!existing) {
+          return null;
+        }
+
+        existing.last_seen_at = new Date().toISOString();
+        users.set(userId, existing);
+
+        return cloneRecord(existing);
+      }
+    },
+
     reportRepository: {
       async insertReport(report) {
         const storedRecord = {
