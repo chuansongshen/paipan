@@ -24,6 +24,9 @@ function buildPayloadKey(mode, payload) {
   return [
     mode,
     payload?.summary?.core,
+    payload?.meta?.referenceDateTime,
+    payload?.meta?.targetDateTime,
+    payload?.meta?.targetMode,
     payload?.meta?.solarDate,
     payload?.meta?.lunarDate
   ]

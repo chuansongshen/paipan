@@ -12,16 +12,13 @@ import {
   getCopyBlockReason,
   resolveZiWeiTargetDateTime
 } from './utils/ziwei_app';
-import { buildZiWeiCopyText } from './utils/ziwei_copy';
+import { buildAiDisabledReason } from './utils/aiInterpretationAvailability';
 import { useAiReportFlow } from './hooks/useAiReportFlow';
 import { useSessionBootstrap } from './hooks/useSessionBootstrap';
-import AiFollowUpPanel from './components/AiFollowUpPanel';
-import AiReportPanel from './components/AiReportPanel';
-import ComplianceNotice from './components/ComplianceNotice';
+import AiInterpretationSection from './components/AiInterpretationSection';
 import QimenDisk from './components/QimenDisk';
 import DaLiuRenDisk from './components/DaLiuRenDisk';
 import LiuYaoDisk from './components/LiuYaoDisk';
-import RecommendationPanel from './components/RecommendationPanel';
 import BaZiDisk from './components/BaZiDisk';
 import dayjs from 'dayjs';
 import { 
@@ -48,8 +45,58 @@ const EMPTY_ZIWEI_SELECTION = Object.freeze({
 
 const createEmptyZiWeiSelection = () => ({ ...EMPTY_ZIWEI_SELECTION });
 
-const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-const getZhiIdx = (z) => ZHI.indexOf(z);
+function buildAiPayloadContext({
+  appMode,
+  birthYear,
+  currentZiWeiTargetDate,
+  date,
+  gender,
+  liuyaoInputMode,
+  method,
+  ziweiQuickSelection,
+  ziweiTargetMode
+}) {
+  // 不同盘型的额外上下文统一从这里进入，避免在载荷构建器里反向读取界面状态。
+  const referenceDateTime = date.format('YYYY-MM-DD HH:mm');
+
+  if (appMode === 'qimen') {
+    return {
+      referenceDateTime,
+      method
+    };
+  }
+
+  if (appMode === 'daliuren') {
+    return {
+      referenceDateTime,
+      birthYear,
+      gender
+    };
+  }
+
+  if (appMode === 'liuyao') {
+    return {
+      referenceDateTime,
+      birthYear,
+      gender,
+      liuyaoInputMode
+    };
+  }
+
+  if (appMode === 'ziwei') {
+    return {
+      referenceDateTime,
+      targetDateTime: currentZiWeiTargetDate.format('YYYY-MM-DD HH:mm'),
+      targetMode: ziweiTargetMode,
+      quickSelection: ziweiQuickSelection
+    };
+  }
+
+  return {
+    referenceDateTime,
+    gender
+  };
+}
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -217,6 +264,27 @@ function App() {
     ziweiNow,
     date
   );
+  const aiPayloadContext = useMemo(() => buildAiPayloadContext({
+    appMode,
+    birthYear,
+    currentZiWeiTargetDate,
+    date,
+    gender,
+    liuyaoInputMode,
+    method,
+    ziweiQuickSelection,
+    ziweiTargetMode
+  }), [
+    appMode,
+    birthYear,
+    currentZiWeiTargetDate,
+    date,
+    gender,
+    liuyaoInputMode,
+    method,
+    ziweiQuickSelection,
+    ziweiTargetMode
+  ]);
   const aiPayload = useMemo(() => {
     if (!isAiInterpretationSupportedMode(appMode)) {
       return null;
@@ -227,43 +295,19 @@ function App() {
     }
 
     try {
-      return buildFortunePayload(appMode, panData);
+      return buildFortunePayload(appMode, panData, aiPayloadContext);
     } catch (error) {
       console.error('[AI] 构建解读载荷失败', error);
       return null;
     }
-  }, [appMode, panData]);
-  const aiDisabledReason = useMemo(() => {
-    if (sessionBootstrap.loading) {
-      return '正在初始化当前会话，请稍后再试。';
-    }
-
-    if (sessionBootstrap.error) {
-      return `当前会话初始化失败：${sessionBootstrap.error}`;
-    }
-
-    if (!sessionBootstrap.session?.authenticated) {
-      return '当前会话未登录，请刷新页面后重试。';
-    }
-
-    if (!isAiInterpretationSupportedMode(appMode)) {
-      return '当前仅开放八字模式的 AI 解读。';
-    }
-
-    if (!panData) {
-      return '请先完成排盘。';
-    }
-
-    if (panData.error) {
-      return `排盘失败：${panData.error}`;
-    }
-
-    if (!aiPayload) {
-      return 'AI 解读载荷构建失败。';
-    }
-
-    return '';
-  }, [aiPayload, appMode, panData, sessionBootstrap.error, sessionBootstrap.loading, sessionBootstrap.session]);
+  }, [aiPayloadContext, appMode, panData]);
+  const aiDisabledReason = useMemo(() => buildAiDisabledReason({
+    aiPayload,
+    appMode,
+    panData,
+    sessionBootstrap,
+    ziweiLoading
+  }), [aiPayload, appMode, panData, sessionBootstrap, ziweiLoading]);
   const aiReportFlow = useAiReportFlow({
     enabled: !aiDisabledReason,
     mode: appMode,
@@ -382,160 +426,20 @@ function App() {
       return '紫微斗数排盘加载中，请稍后再试';
     }
 
-    if (!panData) return '暂无数据';
-    if (panData.error) return `排盘失败：${panData.error}`;
-    
-    if (appMode === 'qimen') {
-      const PALACE_MAP = [
-        { id: 4, name: '巽宫' }, { id: 9, name: '离宫' }, { id: 2, name: '坤宫' },
-        { id: 3, name: '震宫' }, { id: 5, name: '中宫' }, { id: 7, name: '兑宫' },
-        { id: 8, name: '艮宫' }, { id: 1, name: '坎宫' }, { id: 6, name: '乾宫' }
-      ];
-      
-      let text = '你是一个精通奇门遁甲的高手，请基于下面的排盘信息，分析一下【*********你的问题*********】，排盘信息如下：\n\n';
-      text += '========== 奇门遁甲排盘 ==========\n\n';
-      text += `【局象信息】\n`;
-      text += `节气：${panData.jieQi}\n`;
-      text += `年柱：${panData.yearGanZhi}\n`;
-      text += `月柱：${panData.monthGanZhi}\n`;
-      text += `日柱：${panData.dayGanZhi}\n`;
-      text += `时柱：${panData.hourGanZhi}\n`;
-      text += `元遁：${panData.type} ${panData.yuan}\n`;
-      text += `局数：${panData.juNum} 局\n`;
-      text += `空亡：${panData.dayXunKong} (日) / ${panData.hourXunKong} (时)\n`;
-      text += `马星：${panData.maXing}\n`;
-      text += `值符：${panData.zhiFuStar}\n`;
-      text += `值使：${panData.zhiShiGate}\n`;
-      text += `旬首：${panData.xun}\n\n`;
-      
-      text += `【九宫信息】\n`;
-      PALACE_MAP.forEach(palace => {
-        const p = palace.id;
-        text += `\n【${palace.name}】\n`;
-        text += `  八神：${panData.shenPan[p] || '-'}\n`;
-        text += `  九星：${panData.tianPan[p] || '-'}\n`;
-        text += `  八门：${panData.renPan[p] || '-'}\n`;
-        text += `  天盘干：${panData.tianPanStems[p] || '-'}\n`;
-        text += `  地盘干：${panData.diPan[p] || '-'}\n`;
-        text += `  暗干：${panData.anGan[p] || '-'}\n`;
-        
-        if (panData.maXingPalace === p) {
-          text += `  ★ 马星所在宫位\n`;
-        }
-        if (panData.kongWangPalaces.includes(p)) {
-          text += `  ⭕️ 空亡宫位\n`;
-        }
-      });
-      
-      text += '\n=================================';
-      return text;
-    } else if (appMode === 'daliuren') {
-      // Da Liu Ren Text Format
-      let text = '你是一个精通大六壬的高手，请基于下面的排盘信息，分析一下【*********你的问题*********】，排盘信息如下：\n\n';
-      text += '========== 大六壬排盘 ==========\n\n';
-      text += `求测年命: ${panData.birthYearGanZhi || birthYear} (${gender})  行年: ${panData.xingNian}\n`;
-      text += `日期: ${panData.dateStr}\n`;
-      text += `四柱: ${panData.ganZhi.year} ${panData.ganZhi.month} ${panData.ganZhi.day} ${panData.ganZhi.hour}\n`;
-      text += `月将: ${panData.yueJiang}  空亡: ${panData.kongWang}\n\n`;
-      
-      text += `【三传】\n`;
-      text += `初传: ${panData.sanChuan[0]?.gan}${panData.sanChuan[0]?.zhi} (${panData.tianJiang?.[panData.sanChuan[0]?.zhi] || '-'})\n`;
-      text += `中传: ${panData.sanChuan[1]?.gan}${panData.sanChuan[1]?.zhi} (${panData.tianJiang?.[panData.sanChuan[1]?.zhi] || '-'})\n`;
-      text += `末传: ${panData.sanChuan[2]?.gan}${panData.sanChuan[2]?.zhi} (${panData.tianJiang?.[panData.sanChuan[2]?.zhi] || '-'})\n\n`;
-      
-      text += `【四课】\n`;
-      // 神将行
-      text += `${panData.tianJiang?.[panData.siKe.fourth.zhi] || '-'} ${panData.tianJiang?.[panData.siKe.third.zhi] || '-'} ${panData.tianJiang?.[panData.siKe.second.zhi] || '-'} ${panData.tianJiang?.[panData.siKe.first.zhi] || '-'}\n`;
-      // 调整顺序：zhi在上，gan在下
-      text += `${panData.siKe.fourth.zhi} ${panData.siKe.third.zhi} ${panData.siKe.second.zhi} ${panData.siKe.first.zhi}\n`;
-      text += `${panData.siKe.fourth.gan} ${panData.siKe.third.gan} ${panData.siKe.second.gan} ${panData.siKe.first.gan}\n\n`;
-      
-      text += `【天地盘】\n`;
-      // Output tian pan, di pan, and tian jiang in a table format
-      text += `地支:   ${ZHI.join('  ')}\n`;
-      text += `天盘:   ${panData.tianPan.map(z => z.padEnd(2, ' ')).join('  ')}\n`;
-      text += `贵神:   ${ZHI.map(z => (panData.tianJiang[panData.tianPan[getZhiIdx(z)]] || '').slice(0, 2).padEnd(2, ' ')).join('  ')}\n\n`;
-      
-      // Add Shen Sha Text
-      if (panData.shenShaText) {
-        text += `【神煞】\n`;
-        text += panData.shenShaText + '\n';
-      }
-      
-      // Add Zhi Zhi
-      if (panData.zhiZhi) {
-        text += `【大六壬直指】\n`;
-        text += panData.zhiZhi + '\n';
-      }
-      
-      text += '\n=================================';
-      return text;
-    } else if (appMode === 'liuyao') {
-      // Liu Yao Text Format
-      const movingText = panData.movingYaos && panData.movingYaos.length > 0
-        ? panData.movingYaos.join('、')
-        : panData.movingYao;
-      let text = '你是一个精通六爻的高手，请基于下面的排盘信息，分析一下【*********你的问题*********】，排盘信息如下：\n\n';
-      text += '========== 六爻排盘 ==========\n\n';
-      text += `求测年命: ${panData.benMing} (${gender})  行年: ${panData.xingNian}\n`;
-      text += `日期: ${panData.dateStr}\n`;
-      text += `干支: ${panData.ganZhi.year} ${panData.ganZhi.month} ${panData.ganZhi.day} ${panData.ganZhi.hour}\n`;
-      text += `空亡: ${panData.dayXunKong} (日) / ${panData.hourXunKong} (时)\n`;
-      text += `动爻: ${movingText}爻\n\n`;
-      
-      text += `【本卦】 ${panData.benGua.name}\n`;
-      // Add simple representation of lines
-      panData.benGua.yaoData.slice().reverse().forEach(yao => {
-         const isMoving = yao.position === panData.movingYao;
-         text += `${yao.position}爻: ${yao.stem}${yao.branch} (${yao.wuxing}) ${yao.yinYang === 1 ? '—' : '--'} ${isMoving ? '○ 动爻' : ''}\n`;
-      });
-      text += '\n';
-      
-      // Add Ben Gua Yao Ci
-      if (panData.benGua.yaoCi) {
-        text += `【本卦爻辞】\n`;
-        panData.benGua.yaoCi.slice().reverse().forEach((ci, idx) => {
-          text += `${panData.benGua.yaoData[5-idx].position}爻：${ci}\n`;
-        });
-        text += '\n';
-      }
-      
-      if (panData.bianGua) {
-        text += `【变卦】 ${panData.bianGua.name}\n`;
-        panData.bianGua.yaoData.slice().reverse().forEach(yao => {
-           text += `${yao.position}爻: ${yao.stem}${yao.branch} (${yao.wuxing}) ${yao.yinYang === 1 ? '—' : '--'}\n`;
-        });
-        text += '\n';
-        
-        // Add Bian Gua Yao Ci
-        if (panData.bianGua.yaoCi) {
-          text += `【变卦爻辞】\n`;
-          panData.bianGua.yaoCi.slice().reverse().forEach((ci, idx) => {
-            text += `${panData.bianGua.yaoData[5-idx].position}爻：${ci}\n`;
-          });
-          text += '\n';
-        }
-      }
-      
-      text += `【神煞】\n`;
-      Object.entries(panData.shenSha).forEach(([key, value]) => {
-        text += `${key}: ${value || '-'}\n`;
-      });
-      
-      text += '\n=================================';
-      return text;
-    } else if (appMode === 'bazi') {
-      return aiPayload?.promptText || '八字排盘载荷暂不可用';
-    } else if (appMode === 'ziwei') {
-      try {
-        return buildZiWeiCopyText(panData);
-      } catch (error) {
-        console.error('[ZiWei] 构建复制文案失败', error);
-        return `紫微斗数复制文案生成失败：${error instanceof Error ? error.message : '未知错误'}`;
-      }
-    } else {
-      return '大六壬排盘 - Formatted text for copy';
+    if (!panData) {
+      return '暂无数据';
     }
+
+    if (panData.error) {
+      return `排盘失败：${panData.error}`;
+    }
+
+    if (isAiInterpretationSupportedMode(appMode)) {
+      // 复制文本与 AI Prompt 复用同一份载荷，避免多盘型维护重复的文本拼接逻辑。
+      return aiPayload?.promptText || `${getModeTitle()}载荷暂不可用`;
+    }
+
+    return '当前排盘文本暂不可用';
   };
 
   const copyToClipboard = async () => {
@@ -775,6 +679,7 @@ function App() {
                   <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
+                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
                       <li>点击 <strong>「复制排盘」</strong> 按钮</li>
                       <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
                       <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
@@ -790,6 +695,7 @@ function App() {
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
                       <li>选择起卦方式：正时起卦或手动起卦</li>
+                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
                       <li>点击 <strong>「复制排盘」</strong> 按钮</li>
                       <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
                       <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
@@ -820,6 +726,7 @@ function App() {
                       <li>默认先显示<strong>本命盘</strong>，此时<strong>大限 / 流年 / 流月 / 流日</strong>均未选中</li>
                       <li>在命盘下方按顺序点击<strong>大限 → 流年 → 流月 → 流日</strong>切换目标运限，未选上一级前下一级不会开放</li>
                       <li>如需精确时点，可直接修改底部的<strong>目标时间</strong></li>
+                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
                       <li>点击 <strong>「复制排盘」</strong> 按钮</li>
                       <li>将内容粘贴到大模型中</li>
                       <li>修改文本中 <strong>【*********你的问题*********】</strong> 为具体问题</li>
@@ -840,37 +747,6 @@ function App() {
                       <li>开发联调默认由后端直连 <strong>AI Studio API</strong>，生产再切换到 <strong>Vertex AI</strong></li>
                     </ol>
                   </Card>
-                  <div style={{ display: 'grid', gap: 16, marginTop: 24 }}>
-                    <ComplianceNotice />
-                    <AiReportPanel
-                      disabledReason={aiDisabledReason}
-                      enabled={!aiDisabledReason}
-                      error={aiReportFlow.reportError}
-                      loading={aiReportFlow.reportLoading}
-                      onQuestionChange={aiReportFlow.setQuestion}
-                      onSubmit={aiReportFlow.submitReport}
-                      question={aiReportFlow.question}
-                      reportUnlockPriceLabel={aiReportFlow.reportUnlockPriceLabel}
-                      report={aiReportFlow.report}
-                    />
-                    <AiFollowUpPanel
-                      error={aiReportFlow.followUpError}
-                      followUpPackError={aiReportFlow.followUpPackError}
-                      followUpPackLoading={aiReportFlow.followUpPackLoading}
-                      followUpPackPriceLabel={aiReportFlow.followUpPackPriceLabel}
-                      followUpInput={aiReportFlow.followUpInput}
-                      followUps={aiReportFlow.followUps}
-                      loading={aiReportFlow.followUpLoading}
-                      onChange={aiReportFlow.setFollowUpInput}
-                      onPurchasePack={aiReportFlow.purchaseFollowUpPack}
-                      onSubmit={aiReportFlow.submitFollowUp}
-                      report={aiReportFlow.report}
-                    />
-                    <RecommendationPanel
-                      loading={aiReportFlow.recommendationLoading}
-                      recommendations={aiReportFlow.recommendations}
-                    />
-                  </div>
                 </ErrorBoundary>
               ) : (
                 <ErrorBoundary>
@@ -879,6 +755,7 @@ function App() {
                   <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
+                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
                       <li>点击 <strong>「复制排盘」</strong> 按钮</li>
                       <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
                       <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
@@ -887,6 +764,14 @@ function App() {
                   </Card>
                 </ErrorBoundary>
               )}
+              {isAiInterpretationSupportedMode(appMode) ? (
+                <ErrorBoundary>
+                  <AiInterpretationSection
+                    disabledReason={aiDisabledReason}
+                    flow={aiReportFlow}
+                  />
+                </ErrorBoundary>
+              ) : null}
             </div>
           </Content>
         </Layout>
