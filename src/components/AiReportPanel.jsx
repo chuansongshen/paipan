@@ -10,6 +10,7 @@ export default function AiReportPanel({
   onQuestionChange,
   onSubmit,
   question,
+  reportUnlockPriceLabel,
   report
 }) {
   return (
@@ -18,12 +19,12 @@ export default function AiReportPanel({
       extra={<Tag color="gold">Beta</Tag>}
       style={{ width: '100%' }}
     >
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         {!enabled && (
           <Alert
             showIcon
             type="warning"
-            message={disabledReason || '当前排盘暂不支持 AI 解读'}
+            title={disabledReason || '当前排盘暂不支持 AI 解读'}
           />
         )}
 
@@ -31,7 +32,7 @@ export default function AiReportPanel({
           <Alert
             showIcon
             type="error"
-            message="AI 解读失败"
+            title="完整报告生成失败"
             description={error}
           />
         )}
@@ -46,15 +47,15 @@ export default function AiReportPanel({
 
         <Space size="middle" wrap>
           <Button type="primary" loading={loading} disabled={!enabled} onClick={onSubmit}>
-            生成完整报告
+            {report ? `再次支付 ${reportUnlockPriceLabel} 生成新报告` : `支付 ${reportUnlockPriceLabel} 生成完整报告`}
           </Button>
-          <Text type="secondary">支持完整报告生成，生成后可继续追问。</Text>
+          <Text type="secondary">开发环境会自动确认 mock 支付；生产环境再切微信支付。</Text>
         </Space>
 
         {report && (
           <>
             <Divider style={{ margin: '8px 0' }} />
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="small" style={{ width: '100%' }}>
               <Text strong>报告摘要</Text>
               <Paragraph style={{ marginBottom: 0 }}>{report.summary}</Paragraph>
               <Space size="small" wrap>

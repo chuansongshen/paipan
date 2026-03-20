@@ -22,6 +22,14 @@ describe('createReportService', () => {
     const reportRepository = {
       insertReport: vi.fn().mockResolvedValue(undefined)
     };
+    const orderService = {
+      assertReportUnlockAvailable: vi.fn().mockResolvedValue({
+        id: 'ord_unlock_001'
+      }),
+      consumeReportUnlock: vi.fn().mockResolvedValue({
+        orderId: 'ord_unlock_001'
+      })
+    };
     const service = createReportService({
       composeReportPrompt,
       deriveRecommendationTags: vi.fn().mockReturnValue(['career_anxiety']),
@@ -29,10 +37,12 @@ describe('createReportService', () => {
         genAiBackend: 'studio'
       },
       genAiClient,
+      orderService,
       reportRepository,
     });
 
     const result = await service.createReport({
+      unlockOrderId: 'ord_unlock_001',
       mode: 'bazi',
       question: '想看事业方向',
       payload: {
@@ -44,6 +54,7 @@ describe('createReportService', () => {
     });
 
     expect(composeReportPrompt).toHaveBeenCalledTimes(1);
+    expect(orderService.assertReportUnlockAvailable).toHaveBeenCalledWith('ord_unlock_001');
     expect(genAiClient.generateText).toHaveBeenCalledWith({
       model: 'gemini-3.1-flash-lite-preview',
       fallbackModels: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
@@ -51,6 +62,10 @@ describe('createReportService', () => {
       systemInstruction: 'system instruction'
     });
     expect(reportRepository.insertReport).toHaveBeenCalledTimes(1);
+    expect(orderService.consumeReportUnlock).toHaveBeenCalledWith({
+      orderId: 'ord_unlock_001',
+      reportId: expect.stringMatching(/^rpt_/)
+    });
     expect(result.reportId).toMatch(/^rpt_/);
     expect(result.reportMarkdown).toContain('事业方向');
     expect(result.remainingCredits).toBe(2);

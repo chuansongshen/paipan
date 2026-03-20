@@ -50,6 +50,22 @@ export function createMemoryRepositories({ logger } = {}) {
           id: existing.id,
           remaining_credits: existing.remaining_credits
         };
+      },
+
+      async incrementRemainingCredits(reportId, incrementBy) {
+        const existing = reports.get(reportId);
+
+        if (!existing) {
+          return null;
+        }
+
+        existing.remaining_credits += incrementBy;
+        reports.set(reportId, existing);
+
+        return {
+          id: existing.id,
+          remaining_credits: existing.remaining_credits
+        };
       }
     },
 
@@ -58,16 +74,59 @@ export function createMemoryRepositories({ logger } = {}) {
         const storedRecord = {
           id: order.id,
           user_id: order.userId || null,
-          product_type: order.productType,
+          order_type: order.orderType,
           amount_fen: order.amountFen,
-          status: order.status,
-          entitlement_count: order.entitlementCount
+          payment_channel: order.paymentChannel,
+          payment_status: order.paymentStatus,
+          provider_order_id: order.providerOrderId || null,
+          entitlement_value: order.entitlementValue || 0,
+          target_report_id: order.targetReportId || null,
+          entitlement_status: order.entitlementStatus || 'pending',
+          payment_payload: order.paymentPayload || null,
+          paid_at: null
         };
 
         orders.set(order.id, storedRecord);
         logger?.debug?.({ orderId: order.id }, '[MemoryRepository] 已写入订单');
 
         return cloneRecord(storedRecord);
+      },
+
+      async findOrderById(orderId) {
+        return cloneRecord(orders.get(orderId) || null);
+      },
+
+      async markOrderPaid(orderId, paymentPayload = null) {
+        const existing = orders.get(orderId);
+
+        if (!existing) {
+          return null;
+        }
+
+        existing.payment_status = 'paid';
+        existing.payment_payload = paymentPayload || existing.payment_payload;
+        existing.paid_at = existing.paid_at || new Date().toISOString();
+
+        if (existing.order_type === 'report_unlock' && existing.entitlement_status === 'pending') {
+          existing.entitlement_status = 'available';
+        }
+
+        orders.set(orderId, existing);
+        return cloneRecord(existing);
+      },
+
+      async markEntitlementConsumed(orderId, { reportId } = {}) {
+        const existing = orders.get(orderId);
+
+        if (!existing) {
+          return null;
+        }
+
+        existing.entitlement_status = 'consumed';
+        existing.target_report_id = reportId || existing.target_report_id;
+        orders.set(orderId, existing);
+
+        return cloneRecord(existing);
       }
     },
 

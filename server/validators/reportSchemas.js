@@ -13,6 +13,7 @@ const payloadSchema = z.object({
 });
 
 const createReportRequestSchema = z.object({
+  unlockOrderId: z.string().trim().min(1),
   mode: z.string().min(1),
   question: z.string().trim().default(''),
   payload: payloadSchema

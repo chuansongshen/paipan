@@ -836,14 +836,19 @@ function App() {
                       onQuestionChange={aiReportFlow.setQuestion}
                       onSubmit={aiReportFlow.submitReport}
                       question={aiReportFlow.question}
+                      reportUnlockPriceLabel={aiReportFlow.reportUnlockPriceLabel}
                       report={aiReportFlow.report}
                     />
                     <AiFollowUpPanel
                       error={aiReportFlow.followUpError}
+                      followUpPackError={aiReportFlow.followUpPackError}
+                      followUpPackLoading={aiReportFlow.followUpPackLoading}
+                      followUpPackPriceLabel={aiReportFlow.followUpPackPriceLabel}
                       followUpInput={aiReportFlow.followUpInput}
                       followUps={aiReportFlow.followUps}
                       loading={aiReportFlow.followUpLoading}
                       onChange={aiReportFlow.setFollowUpInput}
+                      onPurchasePack={aiReportFlow.purchaseFollowUpPack}
                       onSubmit={aiReportFlow.submitFollowUp}
                       report={aiReportFlow.report}
                     />

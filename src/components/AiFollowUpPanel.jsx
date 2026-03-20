@@ -4,10 +4,14 @@ const { Paragraph, Text } = Typography;
 
 export default function AiFollowUpPanel({
   error,
+  followUpPackError,
+  followUpPackLoading,
+  followUpPackPriceLabel,
   followUpInput,
   followUps,
   loading,
   onChange,
+  onPurchasePack,
   onSubmit,
   report
 }) {
@@ -16,13 +20,22 @@ export default function AiFollowUpPanel({
 
   return (
     <Card title="继续追问" style={{ width: '100%' }}>
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         {error && (
           <Alert
             showIcon
             type="error"
-            message="追问失败"
+            title="追问失败"
             description={error}
+          />
+        )}
+
+        {followUpPackError && (
+          <Alert
+            showIcon
+            type="error"
+            title="追问包购买失败"
+            description={followUpPackError}
           />
         )}
 
@@ -38,6 +51,13 @@ export default function AiFollowUpPanel({
           <Button type="primary" ghost loading={loading} disabled={disabled} onClick={onSubmit}>
             提交追问
           </Button>
+          <Button
+            loading={followUpPackLoading}
+            disabled={!report?.reportId}
+            onClick={onPurchasePack}
+          >
+            购买追问包 {followUpPackPriceLabel}
+          </Button>
           <Text type={remainingCredits > 0 ? 'secondary' : 'danger'}>
             {report?.reportId ? `剩余 ${remainingCredits} 次追问` : '当前还没有可追问的报告'}
           </Text>
@@ -46,8 +66,8 @@ export default function AiFollowUpPanel({
         {followUps.length ? (
           <Timeline
             items={followUps.map((item) => ({
-              children: (
-                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              content: (
+                <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                   <Text strong>{item.question}</Text>
                   <Paragraph
                     style={{

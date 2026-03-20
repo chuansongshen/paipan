@@ -1,7 +1,13 @@
 import { randomUUID } from 'crypto';
 
 function ensureWechatConfig(env) {
-  if (!env.wechatAppId || !env.wechatMchId || !env.wechatNotifyUrl) {
+  if (
+    !env.wechatAppId
+    || !env.wechatMchId
+    || !env.wechatNotifyUrl
+    || !env.wechatMchSerialNo
+    || !env.wechatPrivateKey
+  ) {
     throw new Error('[Payment] 微信支付基础配置不完整');
   }
 }
@@ -10,6 +16,8 @@ export function createWechatPayClient({ env, httpTransport, logger, signer }) {
   ensureWechatConfig(env);
 
   return {
+    paymentBackend: 'wechat',
+
     async createJsapiOrder({ amountFen, description, outTradeNo, payerOpenId }) {
       if (!httpTransport || !signer) {
         throw new Error('[Payment] 微信支付签名传输层尚未配置');
@@ -55,6 +63,7 @@ export function createWechatPayClient({ env, httpTransport, logger, signer }) {
       );
 
       return {
+        paymentBackend: 'wechat',
         prepayId,
         paymentParams: {
           appId: env.wechatAppId,

@@ -15,10 +15,13 @@ export function createReportService({
   deriveRecommendationTags,
   env,
   genAiClient,
+  orderService,
   reportRepository,
 }) {
   return {
-    async createReport({ mode, question, payload }) {
+    async createReport({ mode, question, payload, unlockOrderId }) {
+      await orderService.assertReportUnlockAvailable(unlockOrderId);
+
       const promptConfig = composeReportPrompt({
         env,
         mode,
@@ -46,6 +49,11 @@ export function createReportService({
       if (reportRepository?.insertReport) {
         await reportRepository.insertReport(reportRecord);
       }
+
+      await orderService.consumeReportUnlock({
+        orderId: unlockOrderId,
+        reportId
+      });
 
       return {
         reportId,

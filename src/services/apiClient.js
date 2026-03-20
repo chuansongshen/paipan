@@ -54,10 +54,11 @@ async function requestJson(path, options = {}) {
   return response.json();
 }
 
-export async function createAiReport({ mode, question, payload }) {
+export async function createAiReport({ mode, question, payload, unlockOrderId }) {
   return requestJson('/api/report/create', {
     method: 'POST',
     body: JSON.stringify({
+      unlockOrderId,
       mode,
       question,
       payload
@@ -91,5 +92,23 @@ export async function getRecommendations(tags = []) {
 
   return requestJson(`/api/recommendations?${searchParams.toString()}`, {
     method: 'GET'
+  });
+}
+
+export async function createOrder({ payerOpenId, productType, reportId, userId }) {
+  return requestJson('/api/orders', {
+    method: 'POST',
+    body: JSON.stringify({
+      payerOpenId,
+      productType,
+      reportId,
+      userId
+    })
+  });
+}
+
+export async function confirmMockOrder(orderId) {
+  return requestJson(`/api/orders/${orderId}/mock-confirm`, {
+    method: 'POST'
   });
 }

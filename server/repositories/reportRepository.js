@@ -63,6 +63,20 @@ export function createReportRepository(db) {
       );
 
       return result.rows[0] || null;
+    },
+
+    async incrementRemainingCredits(reportId, incrementBy) {
+      const result = await db.query(
+        `
+          update reports
+          set remaining_credits = remaining_credits + $2
+          where id = $1
+          returning id, remaining_credits
+        `,
+        [reportId, incrementBy]
+      );
+
+      return result.rows[0] || null;
     }
   };
 }
