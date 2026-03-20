@@ -15,9 +15,10 @@ function buildFollowUpPrompt({ report, message }) {
 }
 
 export function createFollowUpService({
+  deriveRecommendationTags,
   followUpRepository,
+  genAiClient,
   reportRepository,
-  vertexAiClient
 }) {
   return {
     async answerQuestion({ message, reportId, userId }) {
@@ -31,7 +32,7 @@ export function createFollowUpService({
         throw new Error('[FollowUp] 追问次数已用尽');
       }
 
-      const generationResult = await vertexAiClient.generateText({
+      const generationResult = await genAiClient.generateText({
         model: 'gemini-2.5-flash',
         prompt: buildFollowUpPrompt({ report, message }),
         systemInstruction: '请延续原报告的分析语境，给出清晰、简洁、可执行的补充回答。',
@@ -41,6 +42,11 @@ export function createFollowUpService({
         }
       });
       const remainingCredits = report.remaining_credits - 1;
+      const recommendationTags = deriveRecommendationTags?.({
+        question: message,
+        content: generationResult.text,
+        summary: report.summary
+      }) || [];
 
       await reportRepository.updateRemainingCredits(reportId, remainingCredits);
 
@@ -58,7 +64,8 @@ export function createFollowUpService({
       return {
         answer: generationResult.text,
         remainingCredits,
-        usageMetadata: generationResult.usageMetadata || null
+        usageMetadata: generationResult.usageMetadata || null,
+        recommendationTags
       };
     }
   };

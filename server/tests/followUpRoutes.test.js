@@ -22,7 +22,8 @@ describe('createFollowUpHandler', () => {
       answerQuestion: vi.fn().mockResolvedValue({
         answer: '建议先稳后动',
         remainingCredits: 1,
-        usageMetadata: null
+        usageMetadata: null,
+        recommendationTags: ['career_anxiety']
       })
     };
     const next = vi.fn();
@@ -50,6 +51,7 @@ describe('createFollowUpHandler', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.payload.remainingCredits).toBe(1);
+    expect(response.payload.recommendationTags).toEqual(['career_anxiety']);
     expect(next).not.toHaveBeenCalled();
   });
 });

@@ -76,4 +76,71 @@ describe('createVertexAiClient', () => {
       })
     ).rejects.toThrow('Gemini 返回空文本');
   });
+
+  it('在开发环境按 AI Studio 配置初始化 SDK', async () => {
+    const sdkFactory = vi.fn().mockReturnValue({
+      models: {
+        generateContent: vi.fn().mockResolvedValue({
+          text: '开发联调结果'
+        })
+      }
+    });
+    const client = createVertexAiClient({
+      env: {
+        genAiBackend: 'studio',
+        geminiApiKey: 'studio-key'
+      },
+      logger: {
+        info: vi.fn(),
+        error: vi.fn()
+      },
+      sdkFactory
+    });
+
+    await client.generateText({
+      model: 'gemini-2.5-pro',
+      prompt: 'prompt body',
+      systemInstruction: 'system instruction'
+    });
+
+    expect(sdkFactory).toHaveBeenCalledWith({
+      apiKey: 'studio-key'
+    });
+  });
+
+  it('在生产环境按 Vertex 配置初始化 SDK', async () => {
+    const sdkFactory = vi.fn().mockReturnValue({
+      models: {
+        generateContent: vi.fn().mockResolvedValue({
+          text: '生产结果'
+        })
+      }
+    });
+    const client = createVertexAiClient({
+      env: {
+        genAiBackend: 'vertex',
+        vertexProjectId: 'demo-project',
+        vertexLocation: 'asia-east2',
+        vertexApiVersion: 'v1'
+      },
+      logger: {
+        info: vi.fn(),
+        error: vi.fn()
+      },
+      sdkFactory
+    });
+
+    await client.generateText({
+      model: 'gemini-2.5-pro',
+      prompt: 'prompt body',
+      systemInstruction: 'system instruction'
+    });
+
+    expect(sdkFactory).toHaveBeenCalledWith({
+      vertexai: true,
+      project: 'demo-project',
+      location: 'asia-east2',
+      apiVersion: 'v1'
+    });
+  });
 });

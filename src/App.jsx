@@ -3,16 +3,24 @@ import { getPaiPan } from './utils/qimen';
 import { getDaLiuRenPaiPan } from './utils/daliuren';
 import { getLiuYaoPaiPan } from './utils/liuyao';
 import { getBaZiPaiPan } from './utils/bazi';
-import { buildFortunePayload } from './utils/fortunePayload';
+import {
+  buildFortunePayload,
+  isAiInterpretationSupportedMode
+} from './utils/fortunePayload';
 import {
   deriveZiWeiFullSelectionState,
   getCopyBlockReason,
   resolveZiWeiTargetDateTime
 } from './utils/ziwei_app';
 import { buildZiWeiCopyText } from './utils/ziwei_copy';
+import { useAiReportFlow } from './hooks/useAiReportFlow';
+import AiFollowUpPanel from './components/AiFollowUpPanel';
+import AiReportPanel from './components/AiReportPanel';
+import ComplianceNotice from './components/ComplianceNotice';
 import QimenDisk from './components/QimenDisk';
 import DaLiuRenDisk from './components/DaLiuRenDisk';
 import LiuYaoDisk from './components/LiuYaoDisk';
+import RecommendationPanel from './components/RecommendationPanel';
 import BaZiDisk from './components/BaZiDisk';
 import dayjs from 'dayjs';
 import { 
@@ -207,6 +215,46 @@ function App() {
     ziweiNow,
     date
   );
+  const aiPayload = useMemo(() => {
+    if (!isAiInterpretationSupportedMode(appMode)) {
+      return null;
+    }
+
+    if (!panData || panData.error) {
+      return null;
+    }
+
+    try {
+      return buildFortunePayload(appMode, panData);
+    } catch (error) {
+      console.error('[AI] 构建解读载荷失败', error);
+      return null;
+    }
+  }, [appMode, panData]);
+  const aiDisabledReason = useMemo(() => {
+    if (!isAiInterpretationSupportedMode(appMode)) {
+      return '当前仅开放八字模式的 AI 解读。';
+    }
+
+    if (!panData) {
+      return '请先完成排盘。';
+    }
+
+    if (panData.error) {
+      return `排盘失败：${panData.error}`;
+    }
+
+    if (!aiPayload) {
+      return 'AI 解读载荷构建失败。';
+    }
+
+    return '';
+  }, [aiPayload, appMode, panData]);
+  const aiReportFlow = useAiReportFlow({
+    enabled: !aiDisabledReason,
+    mode: appMode,
+    payload: aiPayload
+  });
 
   useEffect(() => {
     if (appMode !== 'ziwei' || !ziweiPendingSelectionSource) {
@@ -463,7 +511,7 @@ function App() {
       text += '\n=================================';
       return text;
     } else if (appMode === 'bazi') {
-      return buildFortunePayload('bazi', panData).promptText;
+      return aiPayload?.promptText || '八字排盘载荷暂不可用';
     } else if (appMode === 'ziwei') {
       try {
         return buildZiWeiCopyText(panData);
@@ -773,12 +821,37 @@ function App() {
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li><strong>⚠️ 注意：</strong>八字排盘需要修改<strong>日期时间为出生时间</strong>（阳历）</li>
                       <li>选择正确的<strong>性别</strong></li>
-                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
-                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
-                      <li>修改文本中需要分析的具体内容</li>
-                      <li>发送给大模型，等待分析结果</li>
+                      <li>可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
+                      <li>如需自行调试 Prompt，仍可点击 <strong>「复制排盘」</strong> 按钮</li>
+                      <li>开发联调默认由后端直连 <strong>AI Studio API</strong>，生产再切换到 <strong>Vertex AI</strong></li>
                     </ol>
                   </Card>
+                  <div style={{ display: 'grid', gap: 16, marginTop: 24 }}>
+                    <ComplianceNotice />
+                    <AiReportPanel
+                      disabledReason={aiDisabledReason}
+                      enabled={!aiDisabledReason}
+                      error={aiReportFlow.reportError}
+                      loading={aiReportFlow.reportLoading}
+                      onQuestionChange={aiReportFlow.setQuestion}
+                      onSubmit={aiReportFlow.submitReport}
+                      question={aiReportFlow.question}
+                      report={aiReportFlow.report}
+                    />
+                    <AiFollowUpPanel
+                      error={aiReportFlow.followUpError}
+                      followUpInput={aiReportFlow.followUpInput}
+                      followUps={aiReportFlow.followUps}
+                      loading={aiReportFlow.followUpLoading}
+                      onChange={aiReportFlow.setFollowUpInput}
+                      onSubmit={aiReportFlow.submitFollowUp}
+                      report={aiReportFlow.report}
+                    />
+                    <RecommendationPanel
+                      loading={aiReportFlow.recommendationLoading}
+                      recommendations={aiReportFlow.recommendations}
+                    />
+                  </div>
                 </ErrorBoundary>
               ) : (
                 <ErrorBoundary>

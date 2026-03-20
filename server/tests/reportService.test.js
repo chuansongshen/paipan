@@ -8,7 +8,7 @@ describe('createReportService', () => {
       prompt: 'prompt body',
       systemInstruction: 'system instruction'
     });
-    const vertexAiClient = {
+    const genAiClient = {
       generateText: vi.fn().mockResolvedValue({
         text: '事业方向稳中有进，建议先积累资源再求变。',
         usageMetadata: {
@@ -22,8 +22,9 @@ describe('createReportService', () => {
     };
     const service = createReportService({
       composeReportPrompt,
+      deriveRecommendationTags: vi.fn().mockReturnValue(['career_anxiety']),
+      genAiClient,
       reportRepository,
-      vertexAiClient
     });
 
     const result = await service.createReport({
@@ -38,7 +39,7 @@ describe('createReportService', () => {
     });
 
     expect(composeReportPrompt).toHaveBeenCalledTimes(1);
-    expect(vertexAiClient.generateText).toHaveBeenCalledWith({
+    expect(genAiClient.generateText).toHaveBeenCalledWith({
       model: 'gemini-2.5-pro',
       prompt: 'prompt body',
       systemInstruction: 'system instruction'
@@ -47,5 +48,6 @@ describe('createReportService', () => {
     expect(result.reportId).toMatch(/^rpt_/);
     expect(result.reportMarkdown).toContain('事业方向');
     expect(result.remainingCredits).toBe(2);
+    expect(result.recommendationTags).toEqual(['career_anxiety']);
   });
 });

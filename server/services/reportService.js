@@ -12,8 +12,9 @@ function buildSummary(text) {
 
 export function createReportService({
   composeReportPrompt,
+  deriveRecommendationTags,
+  genAiClient,
   reportRepository,
-  vertexAiClient
 }) {
   return {
     async createReport({ mode, question, payload }) {
@@ -22,8 +23,13 @@ export function createReportService({
         question,
         payload
       });
-      const generationResult = await vertexAiClient.generateText(promptConfig);
+      const generationResult = await genAiClient.generateText(promptConfig);
       const reportId = `rpt_${randomUUID().replace(/-/g, '')}`;
+      const recommendationTags = deriveRecommendationTags?.({
+        question,
+        content: generationResult.text,
+        summary: payload?.summary?.core
+      }) || [];
       const reportRecord = {
         id: reportId,
         mode,
@@ -44,7 +50,8 @@ export function createReportService({
         summary: reportRecord.summary,
         reportMarkdown: reportRecord.fullReportMarkdown,
         remainingCredits: reportRecord.remainingCredits,
-        usageMetadata: reportRecord.usageMetadata
+        usageMetadata: reportRecord.usageMetadata,
+        recommendationTags
       };
     }
   };

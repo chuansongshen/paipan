@@ -1,24 +1,62 @@
+import 'dotenv/config';
 import { createApp } from './app.js';
+import { createLogger } from './config/logger.js';
+import { readEnv } from './config/env.js';
+import { createRuntimeServices } from './bootstrap/createRuntimeServices.js';
 
-const DEFAULT_PORT = 8787;
+async function main() {
+  const env = readEnv();
+  const logger = createLogger(env);
+  const runtime = createRuntimeServices({ env, logger });
+  const app = createApp({
+    env,
+    logger,
+    services: runtime.services
+  });
+  const server = app.listen(env.port, () => {
+    logger.info(
+      {
+        port: env.port,
+        genAiBackend: env.genAiBackend
+      },
+      '[Api] 服务已启动'
+    );
+  });
 
-function readPort() {
-  const port = Number(process.env.PORT || DEFAULT_PORT);
+  const shutdown = async (signal) => {
+    logger.info({ signal }, '[Api] 收到退出信号，准备关闭服务');
 
-  if (Number.isNaN(port) || port <= 0) {
-    throw new Error(`[Api] 无效端口配置: ${process.env.PORT}`);
-  }
+    await new Promise((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
 
-  return port;
+        resolve();
+      });
+    });
+    await runtime.close();
+    logger.info('[Api] 服务已平滑关闭');
+  };
+
+  process.once('SIGINT', () => {
+    shutdown('SIGINT').catch((error) => {
+      logger.error({ err: error }, '[Api] SIGINT 关闭流程失败');
+      process.exitCode = 1;
+    });
+  });
+
+  process.once('SIGTERM', () => {
+    shutdown('SIGTERM').catch((error) => {
+      logger.error({ err: error }, '[Api] SIGTERM 关闭流程失败');
+      process.exitCode = 1;
+    });
+  });
 }
 
 try {
-  const app = createApp();
-  const port = readPort();
-
-  app.listen(port, () => {
-    console.log(`[Api] 服务已启动，端口 ${port}`);
-  });
+  await main();
 } catch (error) {
   console.error('[Api] 服务启动失败', error);
   process.exitCode = 1;

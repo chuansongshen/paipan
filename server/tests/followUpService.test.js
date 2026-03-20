@@ -18,7 +18,7 @@ describe('createFollowUpService', () => {
     const followUpRepository = {
       insertFollowUp: vi.fn().mockResolvedValue(undefined)
     };
-    const vertexAiClient = {
+    const genAiClient = {
       generateText: vi.fn().mockResolvedValue({
         text: '建议先积累资源，再做岗位切换。',
         usageMetadata: {
@@ -28,9 +28,10 @@ describe('createFollowUpService', () => {
       })
     };
     const service = createFollowUpService({
+      deriveRecommendationTags: vi.fn().mockReturnValue(['career_anxiety']),
       followUpRepository,
+      genAiClient,
       reportRepository,
-      vertexAiClient
     });
 
     const result = await service.answerQuestion({
@@ -40,17 +41,22 @@ describe('createFollowUpService', () => {
     });
 
     expect(reportRepository.findReportById).toHaveBeenCalledWith('rpt_001');
-    expect(vertexAiClient.generateText).toHaveBeenCalledTimes(1);
+    expect(genAiClient.generateText).toHaveBeenCalledTimes(1);
     expect(reportRepository.updateRemainingCredits).toHaveBeenCalledWith('rpt_001', 1);
     expect(followUpRepository.insertFollowUp).toHaveBeenCalledTimes(1);
     expect(result.remainingCredits).toBe(1);
     expect(result.answer).toContain('积累资源');
+    expect(result.recommendationTags).toEqual(['career_anxiety']);
   });
 
   it('在追问次数耗尽时抛出明确错误', async () => {
     const service = createFollowUpService({
+      deriveRecommendationTags: vi.fn(),
       followUpRepository: {
         insertFollowUp: vi.fn()
+      },
+      genAiClient: {
+        generateText: vi.fn()
       },
       reportRepository: {
         findReportById: vi.fn().mockResolvedValue({
@@ -60,9 +66,6 @@ describe('createFollowUpService', () => {
           remaining_credits: 0
         }),
         updateRemainingCredits: vi.fn()
-      },
-      vertexAiClient: {
-        generateText: vi.fn()
       }
     });
 

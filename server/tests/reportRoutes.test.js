@@ -24,7 +24,8 @@ describe('createReportHandler', () => {
         summary: '摘要',
         reportMarkdown: '报告正文',
         remainingCredits: 2,
-        usageMetadata: null
+        usageMetadata: null,
+        recommendationTags: ['career_anxiety']
       })
     };
     const next = vi.fn();
@@ -68,6 +69,7 @@ describe('createReportHandler', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.payload.reportId).toBe('rpt_001');
+    expect(response.payload.recommendationTags).toEqual(['career_anxiety']);
     expect(next).not.toHaveBeenCalled();
   });
 
