@@ -6,7 +6,20 @@
         "title": "事业方向深度咨询",
         "description": "适合对工作选择、岗位调整和中长期规划有疑问的用户。",
         "priceLabel": "¥99 起",
-        "targetUrl": "/consultants/career-001"
+        "targetUrl": "/consultants/career-001",
+        "highlights": [
+          "聚焦职业定位、岗位选择和阶段节奏判断",
+          "适合已经看过 AI 报告，想进一步拆解行动方案的用户",
+          "交付形式可切换为图文答疑或语音咨询"
+        ],
+        "deliveryType": "图文 / 语音 1 对 1",
+        "serviceSteps": [
+          "提交当前 AI 报告与核心问题",
+          "补充近两年的工作背景与目标",
+          "在咨询中拆解阶段重点与避坑项"
+        ],
+        "ctaLabel": "预约咨询",
+        "complianceNote": "仅提供传统文化视角下的启发式讨论，不承诺现实结果。"
       }
     ],
     "products": [
@@ -15,7 +28,16 @@
         "title": "事业祝福文创手串",
         "description": "强调仪式感与礼赠属性，不做功效承诺。",
         "priceLabel": "¥39",
-        "targetUrl": "/products/career-bracelet"
+        "targetUrl": "/products/career-bracelet",
+        "highlights": [
+          "适合送礼或自用的轻文创饰品",
+          "主打节气祝福与仪式感表达",
+          "适合作为结果页延伸推荐，不与命理结论直接绑定"
+        ],
+        "materialLabel": "文创饰品 / 手串",
+        "sceneLabel": "礼赠 / 节气 / 职场情绪陪伴",
+        "ctaLabel": "查看商品",
+        "complianceNote": "仅展示礼赠与审美属性，不宣传改运或化煞效果。"
       }
     ]
   },
@@ -26,7 +48,20 @@
         "title": "关系议题一对一解读",
         "description": "适合感情、沟通与关系边界议题。",
         "priceLabel": "¥129 起",
-        "targetUrl": "/consultants/relationship-001"
+        "targetUrl": "/consultants/relationship-001",
+        "highlights": [
+          "适合关系困惑、沟通冲突和边界感议题",
+          "重点梳理关系节奏，而不是给出功效承诺",
+          "可结合 AI 报告继续深入提问"
+        ],
+        "deliveryType": "图文 / 语音 1 对 1",
+        "serviceSteps": [
+          "上传当前 AI 报告摘要",
+          "补充双方关系背景与时间线",
+          "聚焦沟通策略与现实边界"
+        ],
+        "ctaLabel": "预约咨询",
+        "complianceNote": "仅提供关系议题的传统文化启发，不承诺复合或结果。"
       }
     ],
     "products": [
@@ -35,7 +70,16 @@
         "title": "节气礼赠香囊套装",
         "description": "偏情绪陪伴与节气礼赠，不宣传改运效果。",
         "priceLabel": "¥59",
-        "targetUrl": "/products/seasonal-gift"
+        "targetUrl": "/products/seasonal-gift",
+        "highlights": [
+          "适合节气礼赠与情绪陪伴场景",
+          "以氛围感和礼盒体验为主",
+          "不与疗愈、转运等功效词绑定"
+        ],
+        "materialLabel": "礼盒 / 香囊",
+        "sceneLabel": "节气礼赠 / 情绪陪伴",
+        "ctaLabel": "查看商品",
+        "complianceNote": "仅展示礼赠与陪伴属性，不宣传现实功效。"
       }
     ]
   }
