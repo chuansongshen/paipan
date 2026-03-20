@@ -1,11 +1,11 @@
 import { getReportTemplate } from './reportTemplateCatalog.js';
 
-export function composeReportPrompt({ mode, question, payload }) {
+export function composeReportPrompt({ env, mode, question, payload }) {
   if (!payload?.summary?.core || !payload?.promptText) {
     throw new Error('[Prompt] AI 载荷不完整，无法组装 Prompt');
   }
 
-  const template = getReportTemplate(mode);
+  const template = getReportTemplate(mode, env);
   const normalizedQuestion = question?.trim() || '用户未提供具体问题，请先做整体分析，再补充重点提醒。';
 
   const prompt = [

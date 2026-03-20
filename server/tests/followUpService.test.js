@@ -29,6 +29,9 @@ describe('createFollowUpService', () => {
     };
     const service = createFollowUpService({
       deriveRecommendationTags: vi.fn().mockReturnValue(['career_anxiety']),
+      env: {
+        geminiFollowUpModel: 'gemini-2.5-flash'
+      },
       followUpRepository,
       genAiClient,
       reportRepository,
@@ -52,6 +55,7 @@ describe('createFollowUpService', () => {
   it('在追问次数耗尽时抛出明确错误', async () => {
     const service = createFollowUpService({
       deriveRecommendationTags: vi.fn(),
+      env: {},
       followUpRepository: {
         insertFollowUp: vi.fn()
       },

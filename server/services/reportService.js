@@ -13,12 +13,14 @@ function buildSummary(text) {
 export function createReportService({
   composeReportPrompt,
   deriveRecommendationTags,
+  env,
   genAiClient,
   reportRepository,
 }) {
   return {
     async createReport({ mode, question, payload }) {
       const promptConfig = composeReportPrompt({
+        env,
         mode,
         question,
         payload

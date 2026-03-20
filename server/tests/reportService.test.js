@@ -23,6 +23,9 @@ describe('createReportService', () => {
     const service = createReportService({
       composeReportPrompt,
       deriveRecommendationTags: vi.fn().mockReturnValue(['career_anxiety']),
+      env: {
+        genAiBackend: 'studio'
+      },
       genAiClient,
       reportRepository,
     });

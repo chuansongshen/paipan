@@ -35,11 +35,13 @@ export function createRuntimeServices({ env, logger }) {
   });
   const reportService = createReportService({
     composeReportPrompt,
+    env,
     reportRepository: repositories.reportRepository,
     genAiClient,
     deriveRecommendationTags
   });
   const followUpService = createFollowUpService({
+    env,
     followUpRepository: repositories.followUpRepository,
     reportRepository: repositories.reportRepository,
     genAiClient,

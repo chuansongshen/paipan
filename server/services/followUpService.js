@@ -16,6 +16,7 @@ function buildFollowUpPrompt({ report, message }) {
 
 export function createFollowUpService({
   deriveRecommendationTags,
+  env,
   followUpRepository,
   genAiClient,
   reportRepository,
@@ -33,7 +34,7 @@ export function createFollowUpService({
       }
 
       const generationResult = await genAiClient.generateText({
-        model: 'gemini-2.5-flash',
+        model: env?.geminiFollowUpModel || 'gemini-2.5-flash',
         prompt: buildFollowUpPrompt({ report, message }),
         systemInstruction: '请延续原报告的分析语境，给出清晰、简洁、可执行的补充回答。',
         generationConfig: {

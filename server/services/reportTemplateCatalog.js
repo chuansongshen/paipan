@@ -6,19 +6,35 @@ const BASE_SYSTEM_INSTRUCTION = [
   '输出内容仅供传统文化研究与娱乐参考。'
 ].join('\n');
 
-export const REPORT_TEMPLATE_CATALOG = {
-  bazi: {
-    model: 'gemini-2.5-pro',
-    systemInstruction: `${BASE_SYSTEM_INSTRUCTION}\n请重点分析命局结构、大运流年、阶段风险与现实建议。`,
-    generationConfig: {
-      temperature: 0.6,
-      maxOutputTokens: 4096
-    }
+function resolveDefaultReportModel(env = {}) {
+  if (env.geminiReportModel) {
+    return env.geminiReportModel;
   }
-};
 
-export function getReportTemplate(mode) {
-  const template = REPORT_TEMPLATE_CATALOG[mode];
+  if (env.genAiBackend === 'studio') {
+    return 'gemini-2.5-flash';
+  }
+
+  return 'gemini-2.5-pro';
+}
+
+export function createReportTemplateCatalog(env = {}) {
+  return {
+    bazi: {
+      model: resolveDefaultReportModel(env),
+      systemInstruction: `${BASE_SYSTEM_INSTRUCTION}\n请重点分析命局结构、大运流年、阶段风险与现实建议。`,
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 4096
+      }
+    }
+  };
+}
+
+export const REPORT_TEMPLATE_CATALOG = createReportTemplateCatalog();
+
+export function getReportTemplate(mode, env) {
+  const template = createReportTemplateCatalog(env)[mode];
 
   if (!template) {
     throw new Error(`[Prompt] 未找到 ${mode} 对应的报告模板`);
