@@ -31,7 +31,14 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
   }
 
   return {
-    async createOrder({ payerOpenId, productType, reportId, userId }) {
+    async createOrder({ currentUserId, payerOpenId, productType, reportId }) {
+      if (!currentUserId) {
+        throw createAppError('[Auth] 当前请求未登录', {
+          code: 'AUTH_REQUIRED',
+          statusCode: 401
+        });
+      }
+
       const productConfig = getAiProductConfig(productType);
 
       if (!productConfig) {
@@ -49,9 +56,9 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
       }
 
       if (paymentClient.paymentBackend === 'wechat' && !payerOpenId) {
-        throw createAppError('[Order] 微信支付场景必须提供 payerOpenId', {
+        throw createAppError('[Order] 当前用户尚未绑定微信 openid，无法发起微信支付', {
           code: 'PAYER_OPEN_ID_REQUIRED',
-          statusCode: 400
+          statusCode: 409
         });
       }
 
@@ -64,13 +71,20 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
             statusCode: 404
           });
         }
+
+        if (report.user_id !== currentUserId) {
+          throw createAppError('[Order] 指定的报告不存在，无法购买追问包', {
+            code: 'REPORT_NOT_FOUND',
+            statusCode: 404
+          });
+        }
       }
 
       const orderId = `ord_${randomUUID().replace(/-/g, '')}`;
 
       await orderRepository.insertOrder({
         id: orderId,
-        userId,
+        userId: currentUserId,
         orderType: productType,
         amountFen: productConfig.amountFen,
         paymentChannel: paymentClient.paymentBackend === 'mock' ? 'mock_jsapi' : 'wechat_jsapi',
@@ -96,10 +110,17 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
       };
     },
 
-    async getOrder(orderId) {
+    async getOrder({ currentUserId, orderId }) {
+      if (!currentUserId) {
+        throw createAppError('[Auth] 当前请求未登录', {
+          code: 'AUTH_REQUIRED',
+          statusCode: 401
+        });
+      }
+
       const order = await orderRepository.findOrderById(orderId);
 
-      if (!order) {
+      if (!order || order.user_id !== currentUserId) {
         throw createAppError('[Order] 订单不存在', {
           code: 'ORDER_NOT_FOUND',
           statusCode: 404
@@ -109,7 +130,14 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
       return normalizeOrderView(order, paymentClient.paymentBackend);
     },
 
-    async confirmMockOrder(orderId) {
+    async confirmMockOrder({ currentUserId, orderId }) {
+      if (!currentUserId) {
+        throw createAppError('[Auth] 当前请求未登录', {
+          code: 'AUTH_REQUIRED',
+          statusCode: 401
+        });
+      }
+
       if (paymentClient.paymentBackend !== 'mock') {
         throw createAppError('[Order] 当前支付后端不支持 mock 确认', {
           code: 'MOCK_PAYMENT_DISABLED',
@@ -119,7 +147,7 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
 
       const existing = await orderRepository.findOrderById(orderId);
 
-      if (!existing) {
+      if (!existing || existing.user_id !== currentUserId) {
         throw createAppError('[Order] 订单不存在', {
           code: 'ORDER_NOT_FOUND',
           statusCode: 404
@@ -138,6 +166,15 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
         && existing.entitlement_status !== 'consumed'
         && existing.target_report_id
       ) {
+        const targetReport = await reportRepository.findReportById(existing.target_report_id);
+
+        if (!targetReport || targetReport.user_id !== currentUserId) {
+          throw createAppError('[Order] 指定的报告不存在，无法发放追问包', {
+            code: 'REPORT_NOT_FOUND',
+            statusCode: 404
+          });
+        }
+
         const updatedReport = await reportRepository.incrementRemainingCredits(
           existing.target_report_id,
           existing.entitlement_value
@@ -162,10 +199,17 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
       );
     },
 
-    async assertReportUnlockAvailable(orderId) {
+    async assertReportUnlockAvailable({ currentUserId, orderId }) {
+      if (!currentUserId) {
+        throw createAppError('[Auth] 当前请求未登录', {
+          code: 'AUTH_REQUIRED',
+          statusCode: 401
+        });
+      }
+
       const order = await orderRepository.findOrderById(orderId);
 
-      if (!order) {
+      if (!order || order.user_id !== currentUserId) {
         throw createAppError('[Order] 解锁订单不存在', {
           code: 'ORDER_NOT_FOUND',
           statusCode: 404
@@ -196,8 +240,11 @@ export function createOrderService({ orderRepository, paymentClient, reportRepos
       return order;
     },
 
-    async consumeReportUnlock({ orderId, reportId }) {
-      const order = await this.assertReportUnlockAvailable(orderId);
+    async consumeReportUnlock({ currentUserId, orderId, reportId }) {
+      const order = await this.assertReportUnlockAvailable({
+        currentUserId,
+        orderId
+      });
       const consumedOrder = await orderRepository.markEntitlementConsumed(order.id, {
         reportId
       });

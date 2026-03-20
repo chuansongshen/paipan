@@ -27,6 +27,7 @@ async function requestJson(path, options = {}) {
 
   try {
     response = await fetch(buildApiUrl(path), {
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(options.headers || {})
@@ -66,12 +67,11 @@ export async function createAiReport({ mode, question, payload, unlockOrderId })
   });
 }
 
-export async function createAiFollowUp({ reportId, message, userId }) {
+export async function createAiFollowUp({ reportId, message }) {
   return requestJson(`/api/reports/${reportId}/follow-up`, {
     method: 'POST',
     body: JSON.stringify({
-      message,
-      userId
+      message
     })
   });
 }
@@ -95,20 +95,30 @@ export async function getRecommendations(tags = []) {
   });
 }
 
-export async function createOrder({ payerOpenId, productType, reportId, userId }) {
+export async function createOrder({ productType, reportId }) {
   return requestJson('/api/orders', {
     method: 'POST',
     body: JSON.stringify({
-      payerOpenId,
       productType,
-      reportId,
-      userId
+      reportId
     })
   });
 }
 
 export async function confirmMockOrder(orderId) {
   return requestJson(`/api/orders/${orderId}/mock-confirm`, {
+    method: 'POST'
+  });
+}
+
+export async function getAuthSession() {
+  return requestJson('/api/auth/session', {
+    method: 'GET'
+  });
+}
+
+export async function createDevSession() {
+  return requestJson('/api/auth/dev-session', {
     method: 'POST'
   });
 }

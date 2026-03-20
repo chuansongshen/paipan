@@ -6,6 +6,7 @@ describe('createFollowUpService', () => {
     const reportRepository = {
       findReportById: vi.fn().mockResolvedValue({
         id: 'rpt_001',
+        user_id: 'user_001',
         summary: '事业阶段稳中求进',
         full_report_markdown: '完整报告正文',
         remaining_credits: 2
@@ -38,8 +39,8 @@ describe('createFollowUpService', () => {
     });
 
     const result = await service.answerQuestion({
+      currentUserId: 'user_001',
       reportId: 'rpt_001',
-      userId: 'user_001',
       message: '今年适合换工作吗？'
     });
 
@@ -74,6 +75,7 @@ describe('createFollowUpService', () => {
       reportRepository: {
         findReportById: vi.fn().mockResolvedValue({
           id: 'rpt_001',
+          user_id: 'user_001',
           summary: '摘要',
           full_report_markdown: '完整报告',
           remaining_credits: 0
@@ -84,9 +86,41 @@ describe('createFollowUpService', () => {
 
     await expect(
       service.answerQuestion({
+        currentUserId: 'user_001',
         reportId: 'rpt_001',
         message: '还能继续问吗？'
       })
     ).rejects.toThrow('[FollowUp] 追问次数已用尽');
+  });
+
+  it('拒绝追问其他用户的报告', async () => {
+    const service = createFollowUpService({
+      deriveRecommendationTags: vi.fn(),
+      env: {},
+      followUpRepository: {
+        insertFollowUp: vi.fn()
+      },
+      genAiClient: {
+        generateText: vi.fn()
+      },
+      reportRepository: {
+        findReportById: vi.fn().mockResolvedValue({
+          id: 'rpt_001',
+          user_id: 'user_other_001',
+          summary: '摘要',
+          full_report_markdown: '完整报告',
+          remaining_credits: 2
+        }),
+        updateRemainingCredits: vi.fn()
+      }
+    });
+
+    await expect(
+      service.answerQuestion({
+        currentUserId: 'user_001',
+        reportId: 'rpt_001',
+        message: '还能继续问吗？'
+      })
+    ).rejects.toThrow('[FollowUp] 报告不存在');
   });
 });

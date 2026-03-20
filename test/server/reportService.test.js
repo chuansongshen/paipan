@@ -42,6 +42,7 @@ describe('createReportService', () => {
     });
 
     const result = await service.createReport({
+      currentUserId: 'user_001',
       unlockOrderId: 'ord_unlock_001',
       mode: 'bazi',
       question: '想看事业方向',
@@ -54,7 +55,10 @@ describe('createReportService', () => {
     });
 
     expect(composeReportPrompt).toHaveBeenCalledTimes(1);
-    expect(orderService.assertReportUnlockAvailable).toHaveBeenCalledWith('ord_unlock_001');
+    expect(orderService.assertReportUnlockAvailable).toHaveBeenCalledWith({
+      currentUserId: 'user_001',
+      orderId: 'ord_unlock_001'
+    });
     expect(genAiClient.generateText).toHaveBeenCalledWith({
       model: 'gemini-3.1-flash-lite-preview',
       fallbackModels: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
@@ -63,6 +67,7 @@ describe('createReportService', () => {
     });
     expect(reportRepository.insertReport).toHaveBeenCalledTimes(1);
     expect(orderService.consumeReportUnlock).toHaveBeenCalledWith({
+      currentUserId: 'user_001',
       orderId: 'ord_unlock_001',
       reportId: expect.stringMatching(/^rpt_/)
     });

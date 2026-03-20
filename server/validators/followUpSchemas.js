@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
 const followUpSchema = z.object({
-  message: z.string().trim().min(1),
-  userId: z.string().trim().optional()
+  message: z.string().trim().min(1)
 });
 
 export function parseFollowUpRequest(input) {

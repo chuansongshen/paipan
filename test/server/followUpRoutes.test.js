@@ -32,12 +32,14 @@ describe('createFollowUpHandler', () => {
 
     await handler(
       {
+        user: {
+          id: 'user_001'
+        },
         params: {
           reportId: 'rpt_001'
         },
         body: {
-          message: '今年适合换工作吗？',
-          userId: 'user_001'
+          message: '今年适合换工作吗？'
         }
       },
       response,
@@ -47,7 +49,7 @@ describe('createFollowUpHandler', () => {
     expect(followUpService.answerQuestion).toHaveBeenCalledWith({
       reportId: 'rpt_001',
       message: '今年适合换工作吗？',
-      userId: 'user_001'
+      currentUserId: 'user_001'
     });
     expect(response.statusCode).toBe(200);
     expect(response.payload.remainingCredits).toBe(1);

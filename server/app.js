@@ -23,7 +23,10 @@ export function createApp(options = {}) {
     recommendationService: options.recommendationService
   };
 
-  app.use(cors());
+  app.use(cors({
+    origin: true,
+    credentials: true
+  }));
   app.use(express.json({ limit: '1mb' }));
   app.use(createRequestContextMiddleware({ logger }));
   app.use(createCurrentUserMiddleware({

@@ -38,6 +38,7 @@ export function createReportRepository(db) {
         `
           select
             id,
+            user_id,
             summary,
             full_report_markdown,
             remaining_credits

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { createAppError } from '../errors/appError.js';
 import { resolveFollowUpModelSelection } from './modelPolicy.js';
 
 function buildFollowUpPrompt({ report, message }) {
@@ -25,15 +26,35 @@ export function createFollowUpService({
   const followUpModelSelection = resolveFollowUpModelSelection(env);
 
   return {
-    async answerQuestion({ message, reportId, userId }) {
+    async answerQuestion({ currentUserId, message, reportId }) {
+      if (!currentUserId) {
+        throw createAppError('[Auth] 当前请求未登录', {
+          code: 'AUTH_REQUIRED',
+          statusCode: 401
+        });
+      }
+
       const report = await reportRepository.findReportById(reportId);
 
       if (!report) {
-        throw new Error('[FollowUp] 报告不存在');
+        throw createAppError('[FollowUp] 报告不存在', {
+          code: 'REPORT_NOT_FOUND',
+          statusCode: 404
+        });
+      }
+
+      if (report.user_id !== currentUserId) {
+        throw createAppError('[FollowUp] 报告不存在', {
+          code: 'REPORT_NOT_FOUND',
+          statusCode: 404
+        });
       }
 
       if (!report.remaining_credits || report.remaining_credits <= 0) {
-        throw new Error('[FollowUp] 追问次数已用尽');
+        throw createAppError('[FollowUp] 追问次数已用尽', {
+          code: 'FOLLOW_UP_CREDITS_EXHAUSTED',
+          statusCode: 409
+        });
       }
 
       const generationResult = await genAiClient.generateText({
@@ -59,7 +80,7 @@ export function createFollowUpService({
         await followUpRepository.insertFollowUp({
           id: `fu_${randomUUID().replace(/-/g, '')}`,
           reportId,
-          userId,
+          userId: currentUserId,
           userMessage: message,
           assistantMessage: generationResult.text,
           remainingCreditsAfter: remainingCredits

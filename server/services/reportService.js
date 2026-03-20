@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { createAppError } from '../errors/appError.js';
 
 function buildSummary(text) {
   const normalizedText = text.replace(/\s+/g, ' ').trim();
@@ -19,8 +20,18 @@ export function createReportService({
   reportRepository,
 }) {
   return {
-    async createReport({ mode, question, payload, unlockOrderId }) {
-      await orderService.assertReportUnlockAvailable(unlockOrderId);
+    async createReport({ currentUserId, mode, question, payload, unlockOrderId }) {
+      if (!currentUserId) {
+        throw createAppError('[Auth] 当前请求未登录', {
+          code: 'AUTH_REQUIRED',
+          statusCode: 401
+        });
+      }
+
+      await orderService.assertReportUnlockAvailable({
+        currentUserId,
+        orderId: unlockOrderId
+      });
 
       const promptConfig = composeReportPrompt({
         env,
@@ -37,6 +48,7 @@ export function createReportService({
       }) || [];
       const reportRecord = {
         id: reportId,
+        userId: currentUserId,
         mode,
         question,
         summary: buildSummary(generationResult.text),
@@ -51,6 +63,7 @@ export function createReportService({
       }
 
       await orderService.consumeReportUnlock({
+        currentUserId,
         orderId: unlockOrderId,
         reportId
       });

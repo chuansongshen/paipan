@@ -1,4 +1,5 @@
 import { parseFollowUpRequest } from '../validators/followUpSchemas.js';
+import { createRequireAuthMiddleware } from '../middleware/requireAuth.js';
 
 export function createFollowUpHandler({ followUpService }) {
   if (!followUpService) {
@@ -10,6 +11,7 @@ export function createFollowUpHandler({ followUpService }) {
       const input = parseFollowUpRequest(request.body);
       const result = await followUpService.answerQuestion({
         ...input,
+        currentUserId: request.user?.id,
         reportId: request.params.reportId
       });
 
@@ -25,8 +27,11 @@ export function registerFollowUpRoutes(app, services = {}) {
     return;
   }
 
+  const requireAuth = createRequireAuthMiddleware();
+
   app.post(
     '/api/reports/:reportId/follow-up',
+    requireAuth,
     createFollowUpHandler({
       followUpService: services.followUpService
     })

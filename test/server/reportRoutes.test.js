@@ -34,6 +34,9 @@ describe('createReportHandler', () => {
 
     await handler(
       {
+        user: {
+          id: 'user_001'
+        },
         body: {
           unlockOrderId: 'ord_unlock_001',
           mode: 'bazi',
@@ -55,6 +58,7 @@ describe('createReportHandler', () => {
     );
 
     expect(reportService.createReport).toHaveBeenCalledWith({
+      currentUserId: 'user_001',
       unlockOrderId: 'ord_unlock_001',
       mode: 'bazi',
       question: '想看事业方向',

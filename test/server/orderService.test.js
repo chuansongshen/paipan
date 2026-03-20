@@ -25,7 +25,7 @@ describe('createOrderService', () => {
 
     const result = await service.createOrder({
       productType: 'report_unlock',
-      userId: 'user_001'
+      currentUserId: 'user_001'
     });
 
     expect(orderRepository.insertOrder).toHaveBeenCalledTimes(1);
@@ -39,11 +39,37 @@ describe('createOrderService', () => {
     expect(result.paymentBackend).toBe('mock');
   });
 
+  it('拒绝为其他用户的报告购买追问包', async () => {
+    const service = createOrderService({
+      orderRepository: {
+        insertOrder: vi.fn(),
+        findOrderById: vi.fn()
+      },
+      paymentClient: {
+        paymentBackend: 'mock',
+        createJsapiOrder: vi.fn()
+      },
+      reportRepository: {
+        findReportById: vi.fn().mockResolvedValue({
+          id: 'rpt_001',
+          user_id: 'user_other_001'
+        })
+      }
+    });
+
+    await expect(service.createOrder({
+      currentUserId: 'user_001',
+      productType: 'follow_up_pack',
+      reportId: 'rpt_001'
+    })).rejects.toThrow('[Order] 指定的报告不存在，无法购买追问包');
+  });
+
   it('mock 确认追问包支付后发放追问次数', async () => {
     const orderRepository = {
       findOrderById: vi.fn()
         .mockResolvedValueOnce({
           id: 'ord_pack_001',
+          user_id: 'user_001',
           order_type: 'follow_up_pack',
           amount_fen: 990,
           payment_channel: 'mock_jsapi',
@@ -55,6 +81,7 @@ describe('createOrderService', () => {
         })
         .mockResolvedValueOnce({
           id: 'ord_pack_001',
+          user_id: 'user_001',
           order_type: 'follow_up_pack',
           amount_fen: 990,
           payment_channel: 'mock_jsapi',
@@ -68,6 +95,10 @@ describe('createOrderService', () => {
       markEntitlementConsumed: vi.fn().mockResolvedValue(undefined)
     };
     const reportRepository = {
+      findReportById: vi.fn().mockResolvedValue({
+        id: 'rpt_001',
+        user_id: 'user_001'
+      }),
       incrementRemainingCredits: vi.fn().mockResolvedValue({
         id: 'rpt_001',
         remaining_credits: 12
@@ -82,9 +113,13 @@ describe('createOrderService', () => {
       reportRepository
     });
 
-    const result = await service.confirmMockOrder('ord_pack_001');
+    const result = await service.confirmMockOrder({
+      currentUserId: 'user_001',
+      orderId: 'ord_pack_001'
+    });
 
     expect(orderRepository.markOrderPaid).toHaveBeenCalledTimes(1);
+    expect(reportRepository.findReportById).toHaveBeenCalledWith('rpt_001');
     expect(reportRepository.incrementRemainingCredits).toHaveBeenCalledWith('rpt_001', 10);
     expect(orderRepository.markEntitlementConsumed).toHaveBeenCalledWith('ord_pack_001', {
       reportId: 'rpt_001'

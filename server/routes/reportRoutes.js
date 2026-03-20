@@ -1,4 +1,5 @@
 import { parseCreateReportRequest } from '../validators/reportSchemas.js';
+import { createRequireAuthMiddleware } from '../middleware/requireAuth.js';
 
 export function createReportHandler({ reportService }) {
   if (!reportService) {
@@ -8,7 +9,10 @@ export function createReportHandler({ reportService }) {
   return async (request, response, next) => {
     try {
       const input = parseCreateReportRequest(request.body);
-      const result = await reportService.createReport(input);
+      const result = await reportService.createReport({
+        ...input,
+        currentUserId: request.user?.id
+      });
 
       response.status(200).json(result);
     } catch (error) {
@@ -22,8 +26,11 @@ export function registerReportRoutes(app, services = {}) {
     return;
   }
 
+  const requireAuth = createRequireAuthMiddleware();
+
   app.post(
     '/api/report/create',
+    requireAuth,
     createReportHandler({
       reportService: services.reportService
     })

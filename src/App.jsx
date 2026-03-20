@@ -14,6 +14,7 @@ import {
 } from './utils/ziwei_app';
 import { buildZiWeiCopyText } from './utils/ziwei_copy';
 import { useAiReportFlow } from './hooks/useAiReportFlow';
+import { useSessionBootstrap } from './hooks/useSessionBootstrap';
 import AiFollowUpPanel from './components/AiFollowUpPanel';
 import AiReportPanel from './components/AiReportPanel';
 import ComplianceNotice from './components/ComplianceNotice';
@@ -94,6 +95,7 @@ function App() {
   // Liu Yao specific states
   const [liuyaoInputMode, setLiuyaoInputMode] = useState('time'); // 'time' or 'manual'
   const [manualYao, setManualYao] = useState([7, 7, 7, 7, 7, 7]); // Default to all 少阳
+  const sessionBootstrap = useSessionBootstrap();
 
   const syncPanData = useMemo(() => {
     try {
@@ -232,6 +234,18 @@ function App() {
     }
   }, [appMode, panData]);
   const aiDisabledReason = useMemo(() => {
+    if (sessionBootstrap.loading) {
+      return '正在初始化当前会话，请稍后再试。';
+    }
+
+    if (sessionBootstrap.error) {
+      return `当前会话初始化失败：${sessionBootstrap.error}`;
+    }
+
+    if (!sessionBootstrap.session?.authenticated) {
+      return '当前会话未登录，请刷新页面后重试。';
+    }
+
     if (!isAiInterpretationSupportedMode(appMode)) {
       return '当前仅开放八字模式的 AI 解读。';
     }
@@ -249,7 +263,7 @@ function App() {
     }
 
     return '';
-  }, [aiPayload, appMode, panData]);
+  }, [aiPayload, appMode, panData, sessionBootstrap.error, sessionBootstrap.loading, sessionBootstrap.session]);
   const aiReportFlow = useAiReportFlow({
     enabled: !aiDisabledReason,
     mode: appMode,

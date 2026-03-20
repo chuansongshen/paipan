@@ -37,9 +37,12 @@ describe('createOrderHandler', () => {
 
     await handler(
       {
+        user: {
+          id: 'user_001',
+          providerSubject: 'openid_001'
+        },
         body: {
-          productType: 'report_unlock',
-          userId: 'user_001'
+          productType: 'report_unlock'
         }
       },
       response,
@@ -48,7 +51,8 @@ describe('createOrderHandler', () => {
 
     expect(orderService.createOrder).toHaveBeenCalledWith({
       productType: 'report_unlock',
-      userId: 'user_001'
+      currentUserId: 'user_001',
+      payerOpenId: 'openid_001'
     });
     expect(response.statusCode).toBe(200);
     expect(response.payload.orderId).toBe('ord_001');
@@ -76,20 +80,24 @@ describe('createOrderHandler', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  it('读取订单详情', async () => {
+  it('读取订单详情时透传当前用户', async () => {
     const response = createMockResponse();
     const next = vi.fn();
+    const orderService = {
+      getOrder: vi.fn().mockResolvedValue({
+        orderId: 'ord_001',
+        paymentStatus: 'paid'
+      })
+    };
     const handler = createGetOrderHandler({
-      orderService: {
-        getOrder: vi.fn().mockResolvedValue({
-          orderId: 'ord_001',
-          paymentStatus: 'paid'
-        })
-      }
+      orderService
     });
 
     await handler(
       {
+        user: {
+          id: 'user_001'
+        },
         params: {
           orderId: 'ord_001'
         }
@@ -98,6 +106,10 @@ describe('createOrderHandler', () => {
       next
     );
 
+    expect(orderService.getOrder).toHaveBeenCalledWith({
+      currentUserId: 'user_001',
+      orderId: 'ord_001'
+    });
     expect(response.payload.orderId).toBe('ord_001');
     expect(next).not.toHaveBeenCalled();
   });
@@ -105,17 +117,21 @@ describe('createOrderHandler', () => {
   it('执行 mock 支付确认', async () => {
     const response = createMockResponse();
     const next = vi.fn();
+    const orderService = {
+      confirmMockOrder: vi.fn().mockResolvedValue({
+        orderId: 'ord_001',
+        paymentStatus: 'paid'
+      })
+    };
     const handler = createMockConfirmOrderHandler({
-      orderService: {
-        confirmMockOrder: vi.fn().mockResolvedValue({
-          orderId: 'ord_001',
-          paymentStatus: 'paid'
-        })
-      }
+      orderService
     });
 
     await handler(
       {
+        user: {
+          id: 'user_001'
+        },
         params: {
           orderId: 'ord_001'
         }
@@ -124,6 +140,10 @@ describe('createOrderHandler', () => {
       next
     );
 
+    expect(orderService.confirmMockOrder).toHaveBeenCalledWith({
+      currentUserId: 'user_001',
+      orderId: 'ord_001'
+    });
     expect(response.payload.paymentStatus).toBe('paid');
     expect(next).not.toHaveBeenCalled();
   });
