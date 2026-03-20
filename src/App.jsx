@@ -3,6 +3,7 @@ import { getPaiPan } from './utils/qimen';
 import { getDaLiuRenPaiPan } from './utils/daliuren';
 import { getLiuYaoPaiPan } from './utils/liuyao';
 import { getBaZiPaiPan } from './utils/bazi';
+import { buildFortunePayload } from './utils/fortunePayload';
 import {
   deriveZiWeiFullSelectionState,
   getCopyBlockReason,
@@ -462,64 +463,7 @@ function App() {
       text += '\n=================================';
       return text;
     } else if (appMode === 'bazi') {
-      const currentYear = dayjs().year();
-      let text = `你是一个精通四柱八字的高手，现在是${currentYear}年，请分别用梁湘润、盲派、子平命理等八字理论对下面的八字命盘进行推算，分析一下命主的整体命运情况，考虑身强身弱，分析大运流年和十神关系，体用平衡，分析一下命格的成就如何，分析一下人生的关键节点，分析一下【${currentYear}】以及【${currentYear + 1}】两年的流年，注意逻辑合理，综合各种信息文本判断准确的关系模型，交叉验证，多次迭代后输出最终正确结果，八字命盘信息如下：\n\n`;
-      text += '========== 八字排盘 ==========\n\n';
-      text += `性别: ${panData.性别}\n`;
-      text += `阳历: ${panData.阳历}\n`;
-      text += `农历: ${panData.农历}\n`;
-      text += `生肖: ${panData.生肖}\n\n`;
-      
-      text += `【八字】\n${panData.八字}\n`;
-      text += `日主: ${panData.日主}\n\n`;
-      
-      text += `【四柱】\n`;
-      const pillars = [
-        { name: '年柱', data: panData.年柱 },
-        { name: '月柱', data: panData.月柱 },
-        { name: '日柱', data: panData.日柱 },
-        { name: '时柱', data: panData.时柱 }
-      ];
-      
-      pillars.forEach(p => {
-        text += `${p.name}: ${p.data.干支}\n`;
-        text += `  天干: ${p.data.天干.天干} (${p.data.天干.五行} ${p.data.天干.阴阳})`;
-        if (p.data.天干.十神) text += ` [${p.data.天干.十神}]`;
-        text += `\n`;
-        text += `  地支: ${p.data.地支.地支} (${p.data.地支.五行} ${p.data.地支.阴阳})\n`;
-        if (p.data.地支.藏干) {
-          text += `  藏干: `;
-          const cangGan = Object.entries(p.data.地支.藏干).map(([type, info]) => 
-            `${type}${info.天干}[${info.十神}]`
-          ).join(' ');
-          text += cangGan + '\n';
-        }
-        text += `  纳音: ${p.data.纳音}\n`;
-        if (p.data.神煞 && p.data.神煞.length > 0) {
-          text += `  神煞: ${p.data.神煞.join(' ')}\n`;
-        }
-        text += `\n`;
-      });
-      
-      if (panData.刑冲合会 && panData.刑冲合会.length > 0) {
-        text += `【刑冲合会】\n${panData.刑冲合会.join(' ')}\n\n`;
-      }
-      
-      text += `【其他】\n`;
-      text += `胎元: ${panData.胎元}  命宫:${panData.命宫}  身宫: ${panData.身宫}\n\n`;
-      
-      if (panData.大运) {
-        text += `【大运】(起运年龄: ${panData.大运.起运年龄}岁)\n`;
-        panData.大运.大运.forEach(dy => {
-          text += `${dy.干支} (${dy.开始年份}-${dy.结束年份}, ${dy.开始年龄}-${dy.结束年龄}岁) `;
-          text += `天干[${dy.天干十神}] `;
-          const hidden = dy.地支藏干.map((gan, i) => `${gan}(${dy.地支十神[i]})`).join(' ');
-          text += `地支藏干[${hidden}]\n`;
-        });
-      }
-      
-      text += '\n=================================';
-      return text;
+      return buildFortunePayload('bazi', panData).promptText;
     } else if (appMode === 'ziwei') {
       try {
         return buildZiWeiCopyText(panData);

@@ -1,0 +1,36 @@
+import { describe, expect, it } from 'vitest';
+import { composeReportPrompt } from '../services/promptComposer.js';
+
+describe('composeReportPrompt', () => {
+  it('按模板拼装报告 Prompt', () => {
+    const result = composeReportPrompt({
+      mode: 'bazi',
+      question: '我想看事业方向',
+      payload: {
+        summary: {
+          core: '甲子 乙丑 丙寅 丁卯，日主 丙'
+        },
+        promptText: '完整排盘内容'
+      }
+    });
+
+    expect(result.model).toBe('gemini-2.5-pro');
+    expect(result.systemInstruction).toContain('传统文化');
+    expect(result.prompt).toContain('我想看事业方向');
+    expect(result.prompt).toContain('甲子 乙丑 丙寅 丁卯');
+    expect(result.prompt).toContain('完整排盘内容');
+  });
+
+  it('对不完整载荷抛出明确错误', () => {
+    expect(() => composeReportPrompt({
+      mode: 'bazi',
+      question: '',
+      payload: {
+        summary: {
+          core: ''
+        },
+        promptText: ''
+      }
+    })).toThrow('[Prompt] AI 载荷不完整，无法组装 Prompt');
+  });
+});

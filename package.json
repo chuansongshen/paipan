@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "@google-cloud/vertexai": "^1.10.2",
+    "@google/genai": "^1.46.0",
     "antd": "^6.1.2",
     "classnames": "^2.5.1",
     "cors": "^2.8.6",
