@@ -1,0 +1,42 @@
+{
+  "career_anxiety": {
+    "advisors": [
+      {
+        "id": "advisor_career_001",
+        "title": "事业方向深度咨询",
+        "description": "适合对工作选择、岗位调整和中长期规划有疑问的用户。",
+        "priceLabel": "¥99 起",
+        "targetUrl": "/consultants/career-001"
+      }
+    ],
+    "products": [
+      {
+        "id": "product_career_001",
+        "title": "事业祝福文创手串",
+        "description": "强调仪式感与礼赠属性，不做功效承诺。",
+        "priceLabel": "¥39",
+        "targetUrl": "/products/career-bracelet"
+      }
+    ]
+  },
+  "relationship_confusion": {
+    "advisors": [
+      {
+        "id": "advisor_relationship_001",
+        "title": "关系议题一对一解读",
+        "description": "适合感情、沟通与关系边界议题。",
+        "priceLabel": "¥129 起",
+        "targetUrl": "/consultants/relationship-001"
+      }
+    ],
+    "products": [
+      {
+        "id": "product_relationship_001",
+        "title": "节气礼赠香囊套装",
+        "description": "偏情绪陪伴与节气礼赠，不宣传改运效果。",
+        "priceLabel": "¥59",
+        "targetUrl": "/products/seasonal-gift"
+      }
+    ]
+  }
+}

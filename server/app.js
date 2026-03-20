@@ -4,7 +4,10 @@ import { readEnv } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { registerErrorHandler } from './middleware/errorHandler.js';
 import { createRequestContextMiddleware } from './middleware/requestContext.js';
+import { registerFollowUpRoutes } from './routes/followUpRoutes.js';
 import { registerHealthRoutes } from './routes/healthRoutes.js';
+import { registerOrderRoutes } from './routes/orderRoutes.js';
+import { registerRecommendationRoutes } from './routes/recommendationRoutes.js';
 import { registerReportRoutes } from './routes/reportRoutes.js';
 
 export function createApp(options = {}) {
@@ -12,7 +15,10 @@ export function createApp(options = {}) {
   const env = options.env || readEnv();
   const logger = options.logger || createLogger(env);
   const services = options.services || {
-    reportService: options.reportService
+    reportService: options.reportService,
+    orderService: options.orderService,
+    followUpService: options.followUpService,
+    recommendationService: options.recommendationService
   };
 
   app.use(cors());
@@ -24,6 +30,9 @@ export function createApp(options = {}) {
   app.locals.services = services;
 
   registerHealthRoutes(app);
+  registerFollowUpRoutes(app, services);
+  registerOrderRoutes(app, services);
+  registerRecommendationRoutes(app, services);
   registerReportRoutes(app, services);
   registerErrorHandler(app, { logger });
 

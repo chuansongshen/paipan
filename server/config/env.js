@@ -5,6 +5,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   LOG_LEVEL: z.string().default('info'),
   DATABASE_URL: z.string().trim().default(''),
+  WECHAT_APP_ID: z.string().trim().default(''),
+  WECHAT_MCH_ID: z.string().trim().default(''),
+  WECHAT_NOTIFY_URL: z.string().trim().default(''),
   VERTEX_PROJECT_ID: z.string().trim().default(''),
   VERTEX_LOCATION: z.string().trim().default('asia-east2'),
   VERTEX_API_VERSION: z.string().trim().default('v1')
@@ -22,6 +25,9 @@ export function readEnv(source = process.env) {
     port: parsed.data.PORT,
     logLevel: parsed.data.LOG_LEVEL,
     databaseUrl: parsed.data.DATABASE_URL,
+    wechatAppId: parsed.data.WECHAT_APP_ID,
+    wechatMchId: parsed.data.WECHAT_MCH_ID,
+    wechatNotifyUrl: parsed.data.WECHAT_NOTIFY_URL,
     vertexProjectId: parsed.data.VERTEX_PROJECT_ID,
     vertexLocation: parsed.data.VERTEX_LOCATION,
     vertexApiVersion: parsed.data.VERTEX_API_VERSION
