@@ -8,19 +8,46 @@ const BASE_SYSTEM_INSTRUCTION = [
   '输出内容仅供传统文化研究与娱乐参考。'
 ].join('\n');
 
+const DEFAULT_GENERATION_CONFIG = {
+  temperature: 0.6,
+  maxOutputTokens: 4096
+};
+
+function createTemplate(modelSelection, extraInstruction) {
+  return {
+    model: modelSelection.model,
+    fallbackModels: modelSelection.fallbackModels,
+    systemInstruction: `${BASE_SYSTEM_INSTRUCTION}\n${extraInstruction}`,
+    generationConfig: {
+      ...DEFAULT_GENERATION_CONFIG
+    }
+  };
+}
+
 export function createReportTemplateCatalog(env = {}) {
   const modelSelection = resolveReportModelSelection(env);
 
   return {
-    bazi: {
-      model: modelSelection.model,
-      fallbackModels: modelSelection.fallbackModels,
-      systemInstruction: `${BASE_SYSTEM_INSTRUCTION}\n请重点分析命局结构、大运流年、阶段风险与现实建议。`,
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 4096
-      }
-    }
+    bazi: createTemplate(
+      modelSelection,
+      '请重点分析命局结构、大运流年、阶段风险与现实建议。'
+    ),
+    qimen: createTemplate(
+      modelSelection,
+      '请重点分析局势判断、门星神关系、时空格局与可执行建议。'
+    ),
+    daliuren: createTemplate(
+      modelSelection,
+      '请重点分析课体结构、三传四课、涉事关系与应期判断。'
+    ),
+    liuyao: createTemplate(
+      modelSelection,
+      '请重点分析卦象结构、世应关系、六亲动变与应期判断。'
+    ),
+    ziwei: createTemplate(
+      modelSelection,
+      '请重点分析命盘格局、十二宫联动、四化与阶段运势建议。'
+    )
   };
 }
 
