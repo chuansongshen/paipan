@@ -19,6 +19,7 @@ export function composeReportPrompt({ env, mode, question, payload }) {
 
   return {
     model: template.model,
+    fallbackModels: template.fallbackModels || [],
     systemInstruction: template.systemInstruction,
     generationConfig: template.generationConfig,
     prompt

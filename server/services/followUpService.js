@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { resolveFollowUpModelSelection } from './modelPolicy.js';
 
 function buildFollowUpPrompt({ report, message }) {
   return [
@@ -21,6 +22,8 @@ export function createFollowUpService({
   genAiClient,
   reportRepository,
 }) {
+  const followUpModelSelection = resolveFollowUpModelSelection(env);
+
   return {
     async answerQuestion({ message, reportId, userId }) {
       const report = await reportRepository.findReportById(reportId);
@@ -34,7 +37,8 @@ export function createFollowUpService({
       }
 
       const generationResult = await genAiClient.generateText({
-        model: env?.geminiFollowUpModel || 'gemini-2.5-flash',
+        model: followUpModelSelection.model,
+        fallbackModels: followUpModelSelection.fallbackModels,
         prompt: buildFollowUpPrompt({ report, message }),
         systemInstruction: '请延续原报告的分析语境，给出清晰、简洁、可执行的补充回答。',
         generationConfig: {

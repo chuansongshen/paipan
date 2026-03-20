@@ -21,7 +21,7 @@ describe('createReportRepository', () => {
       question: '想看事业方向',
       summary: '摘要',
       fullReportMarkdown: '完整报告',
-      modelName: 'gemini-2.5-pro',
+      modelName: 'gemini-3.1-flash-lite-preview',
       remainingCredits: 2,
       usageMetadata: {
         promptTokenCount: 100
@@ -36,7 +36,7 @@ describe('createReportRepository', () => {
       '想看事业方向',
       '摘要',
       '完整报告',
-      'gemini-2.5-pro',
+      'gemini-3.1-flash-lite-preview',
       2,
       {
         promptTokenCount: 100

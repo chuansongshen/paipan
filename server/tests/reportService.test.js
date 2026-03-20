@@ -4,13 +4,15 @@ import { createReportService } from '../services/reportService.js';
 describe('createReportService', () => {
   it('创建完整报告并持久化', async () => {
     const composeReportPrompt = vi.fn().mockReturnValue({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-flash-lite-preview',
+      fallbackModels: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
       prompt: 'prompt body',
       systemInstruction: 'system instruction'
     });
     const genAiClient = {
       generateText: vi.fn().mockResolvedValue({
         text: '事业方向稳中有进，建议先积累资源再求变。',
+        model: 'gemini-3.1-flash-lite-preview',
         usageMetadata: {
           promptTokenCount: 120,
           candidatesTokenCount: 260
@@ -43,7 +45,8 @@ describe('createReportService', () => {
 
     expect(composeReportPrompt).toHaveBeenCalledTimes(1);
     expect(genAiClient.generateText).toHaveBeenCalledWith({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-flash-lite-preview',
+      fallbackModels: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
       prompt: 'prompt body',
       systemInstruction: 'system instruction'
     });

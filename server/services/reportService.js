@@ -38,7 +38,7 @@ export function createReportService({
         question,
         summary: buildSummary(generationResult.text),
         fullReportMarkdown: generationResult.text,
-        modelName: promptConfig.model,
+        modelName: generationResult.model || promptConfig.model,
         remainingCredits: 2,
         usageMetadata: generationResult.usageMetadata || null
       };

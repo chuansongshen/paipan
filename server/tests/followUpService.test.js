@@ -30,7 +30,7 @@ describe('createFollowUpService', () => {
     const service = createFollowUpService({
       deriveRecommendationTags: vi.fn().mockReturnValue(['career_anxiety']),
       env: {
-        geminiFollowUpModel: 'gemini-2.5-flash'
+        geminiFollowUpModel: 'gemini-3.1-flash-lite-preview'
       },
       followUpRepository,
       genAiClient,
@@ -44,7 +44,16 @@ describe('createFollowUpService', () => {
     });
 
     expect(reportRepository.findReportById).toHaveBeenCalledWith('rpt_001');
-    expect(genAiClient.generateText).toHaveBeenCalledTimes(1);
+    expect(genAiClient.generateText).toHaveBeenCalledWith({
+      model: 'gemini-3.1-flash-lite-preview',
+      fallbackModels: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
+      prompt: expect.any(String),
+      systemInstruction: '请延续原报告的分析语境，给出清晰、简洁、可执行的补充回答。',
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 1024
+      }
+    });
     expect(reportRepository.updateRemainingCredits).toHaveBeenCalledWith('rpt_001', 1);
     expect(followUpRepository.insertFollowUp).toHaveBeenCalledTimes(1);
     expect(result.remainingCredits).toBe(1);

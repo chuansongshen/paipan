@@ -24,7 +24,7 @@ describe('createVertexAiClient', () => {
     });
 
     const result = await client.generateText({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-flash-lite-preview',
       prompt: 'test prompt',
       systemInstruction: 'test instruction',
       generationConfig: {
@@ -33,7 +33,7 @@ describe('createVertexAiClient', () => {
     });
 
     expect(generateContent).toHaveBeenCalledWith({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: 'test prompt',
       config: {
         systemInstruction: 'test instruction',
@@ -41,6 +41,7 @@ describe('createVertexAiClient', () => {
       }
     });
     expect(result).toEqual({
+      model: 'gemini-3.1-flash-lite-preview',
       text: '报告正文',
       usageMetadata: {
         promptTokenCount: 100,
@@ -70,7 +71,7 @@ describe('createVertexAiClient', () => {
 
     await expect(
       client.generateText({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3.1-flash-lite-preview',
         prompt: 'test prompt',
         systemInstruction: 'test instruction'
       })
@@ -98,7 +99,7 @@ describe('createVertexAiClient', () => {
     });
 
     await client.generateText({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-flash-lite-preview',
       prompt: 'prompt body',
       systemInstruction: 'system instruction'
     });
@@ -131,7 +132,7 @@ describe('createVertexAiClient', () => {
     });
 
     await client.generateText({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-flash-lite-preview',
       prompt: 'prompt body',
       systemInstruction: 'system instruction'
     });
@@ -142,5 +143,51 @@ describe('createVertexAiClient', () => {
       location: 'asia-east2',
       apiVersion: 'v1'
     });
+  });
+
+  it('在首选模型失败时按优先级回退到后续模型', async () => {
+    const generateContent = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('quota exceeded'), { status: 429 }))
+      .mockResolvedValueOnce({
+        text: '回退成功'
+      });
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn()
+    };
+    const client = createVertexAiClient({
+      ai: {
+        models: {
+          generateContent
+        }
+      },
+      logger
+    });
+
+    const result = await client.generateText({
+      model: 'gemini-3.1-flash-lite-preview',
+      fallbackModels: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
+      prompt: 'prompt body',
+      systemInstruction: 'system instruction'
+    });
+
+    expect(generateContent).toHaveBeenNthCalledWith(1, {
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: 'prompt body',
+      config: {
+        systemInstruction: 'system instruction'
+      }
+    });
+    expect(generateContent).toHaveBeenNthCalledWith(2, {
+      model: 'gemini-3.1-pro-preview',
+      contents: 'prompt body',
+      config: {
+        systemInstruction: 'system instruction'
+      }
+    });
+    expect(result.model).toBe('gemini-3.1-pro-preview');
+    expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 });
