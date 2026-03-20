@@ -1,0 +1,25 @@
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.string().default('development'),
+  PORT: z.coerce.number().int().positive().default(8787),
+  LOG_LEVEL: z.string().default('info'),
+  VERTEX_PROJECT_ID: z.string().trim().default(''),
+  VERTEX_LOCATION: z.string().trim().default('asia-east2')
+});
+
+export function readEnv(source = process.env) {
+  const parsed = envSchema.safeParse(source);
+
+  if (!parsed.success) {
+    throw new Error(`[Api] 环境变量校验失败: ${parsed.error.message}`);
+  }
+
+  return {
+    nodeEnv: parsed.data.NODE_ENV,
+    port: parsed.data.PORT,
+    logLevel: parsed.data.LOG_LEVEL,
+    vertexProjectId: parsed.data.VERTEX_PROJECT_ID,
+    vertexLocation: parsed.data.VERTEX_LOCATION
+  };
+}
