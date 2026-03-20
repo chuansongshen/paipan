@@ -73,8 +73,33 @@ export function createAuthService({ env, logger, sessionService, userService }) 
       };
     },
 
-    async exchangeWechatCode() {
-      throw createAppError('[Auth] 当前环境尚未接入微信身份交换能力', {
+    async exchangeWechatCode({ code }) {
+      if (!code) {
+        throw createAppError('[Auth] 缺少微信授权 code', {
+          code: 'WECHAT_CODE_REQUIRED',
+          statusCode: 400
+        });
+      }
+
+      if (!env.wechatAppId || !env.wechatAppSecret || !env.wechatOauthRedirectUri) {
+        throw createAppError('[Auth] 微信身份交换配置不完整，请补齐 AppID、AppSecret 和回调地址', {
+          code: 'WECHAT_AUTH_NOT_CONFIGURED',
+          statusCode: 409,
+          details: {
+            hasWechatAppId: Boolean(env.wechatAppId),
+            hasWechatAppSecret: Boolean(env.wechatAppSecret),
+            hasWechatOauthRedirectUri: Boolean(env.wechatOauthRedirectUri)
+          }
+        });
+      }
+
+      logger?.warn?.({
+        wechatAppId: env.wechatAppId,
+        redirectUri: env.wechatOauthRedirectUri,
+        scope: env.wechatOauthScope || 'snsapi_base'
+      }, '[Auth] 微信身份交换配置已就绪，但 code 换取 openid 尚未接入');
+
+      throw createAppError('[Auth] 当前环境尚未接入微信 code 交换实现', {
         code: 'WECHAT_AUTH_NOT_READY',
         statusCode: 409
       });

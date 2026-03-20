@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createDevSessionHandler,
-  createGetSessionHandler
+  createGetSessionHandler,
+  createWechatExchangeHandler
 } from '../../server/routes/authRoutes.js';
 
 function createMockResponse() {
@@ -71,6 +72,43 @@ describe('auth routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.payload.authenticated).toBe(true);
     expect(response.payload.user.id).toBe('usr_guest_001');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('透传微信授权 code 到身份交换服务', async () => {
+    const response = createMockResponse();
+    const next = vi.fn();
+    const authService = {
+      exchangeWechatCode: vi.fn().mockResolvedValue({
+        authenticated: true,
+        user: {
+          id: 'usr_wechat_001',
+          identityProvider: 'wechat',
+          displayName: '微信用户'
+        },
+        setCookieHeader: 'pai_pan_sid=session_wechat_001; Path=/; HttpOnly'
+      })
+    };
+    const handler = createWechatExchangeHandler({
+      authService
+    });
+
+    await handler(
+      {
+        body: {
+          code: 'wx_code_001'
+        }
+      },
+      response,
+      next
+    );
+
+    expect(authService.exchangeWechatCode).toHaveBeenCalledWith({
+      code: 'wx_code_001'
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.payload.user.id).toBe('usr_wechat_001');
+    expect(response.headers['set-cookie']).toBe('pai_pan_sid=session_wechat_001; Path=/; HttpOnly');
     expect(next).not.toHaveBeenCalled();
   });
 });

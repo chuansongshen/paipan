@@ -8,6 +8,8 @@
 
 - 开发环境已经支持 `mock` 支付联调。
 - 生产环境的目标配置是 `Vertex AI + 微信支付 JSAPI`。
+- 开发环境已经支持 `guest session` 自动创建。
+- 服务端已预留 `POST /api/auth/wechat/exchange` 接口位，但尚未真正接入微信 `code -> openid` 网络交换。
 - 微信支付真实签名、回调验签与解密还需要在拿到商户配置后继续接入。
 
 ## 2. 配置分层
@@ -35,6 +37,9 @@ LOG_LEVEL=info
 GENAI_BACKEND=vertex
 PAYMENT_BACKEND=wechat
 DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
+SESSION_COOKIE_NAME=pai_pan_sid
+SESSION_COOKIE_SECRET=<strong-random-secret>
+SESSION_COOKIE_SECURE=true
 
 GEMINI_REPORT_MODEL=gemini-3.1-flash-lite-preview
 GEMINI_FOLLOW_UP_MODEL=gemini-3.1-flash-lite-preview
@@ -44,8 +49,11 @@ VERTEX_LOCATION=asia-east2
 VERTEX_API_VERSION=v1
 
 WECHAT_APP_ID=<wechat-app-id>
+WECHAT_APP_SECRET=<wechat-app-secret>
 WECHAT_MCH_ID=<wechat-merchant-id>
 WECHAT_NOTIFY_URL=https://<your-domain>/api/payments/wechat/notify
+WECHAT_OAUTH_REDIRECT_URI=https://<your-domain>/auth/wechat/callback
+WECHAT_OAUTH_SCOPE=snsapi_base
 WECHAT_API_V3_KEY=<wechat-api-v3-key>
 WECHAT_MCH_SERIAL_NO=<wechat-merchant-cert-serial-no>
 WECHAT_PRIVATE_KEY=<wechat-merchant-private-key-pem>
@@ -58,6 +66,11 @@ WECHAT_PRIVATE_KEY=<wechat-merchant-private-key-pem>
 ```bash
 TZ=Asia/Hong_Kong
 ```
+
+说明：
+
+- `SESSION_COOKIE_SECRET` 必须是足够随机的长字符串，不能继续使用开发环境默认值
+- `SESSION_COOKIE_SECURE=true` 仅在 HTTPS 场景下使用
 
 如果后续要接更完整的日志或监控，也建议追加：
 
@@ -133,8 +146,11 @@ VITE_API_BASE_URL=https://<your-domain>
 生产接真实微信支付前，必须拿到以下配置：
 
 - `WECHAT_APP_ID`
+- `WECHAT_APP_SECRET`
 - `WECHAT_MCH_ID`
 - `WECHAT_NOTIFY_URL`
+- `WECHAT_OAUTH_REDIRECT_URI`
+- `WECHAT_OAUTH_SCOPE`
 - `WECHAT_API_V3_KEY`
 - `WECHAT_MCH_SERIAL_NO`
 - `WECHAT_PRIVATE_KEY`
@@ -144,6 +160,9 @@ VITE_API_BASE_URL=https://<your-domain>
 - `WECHAT_PRIVATE_KEY` 是商户 API 证书对应私钥，通常为 PEM 文本
 - `WECHAT_MCH_SERIAL_NO` 是商户 API 证书序列号
 - `WECHAT_API_V3_KEY` 用于回调报文解密
+- `WECHAT_APP_SECRET` 用于服务端 `code -> openid` 交换
+- `WECHAT_OAUTH_REDIRECT_URI` 是微信网页授权回调地址
+- `WECHAT_OAUTH_SCOPE` 当前建议先用 `snsapi_base`
 
 ### 5.2 JSAPI 的额外前提
 
@@ -161,6 +180,19 @@ VITE_API_BASE_URL=https://<your-domain>
 - 微信授权登录流程
 - `code -> openid` 服务端交换接口
 - 用户会话持久化
+
+当前项目已完成：
+
+- 签名 cookie 的 session 基础能力
+- `guest session` 开发态自动创建
+- `/api/auth/session` 当前会话接口
+- `/api/auth/wechat/exchange` 接口位与配置校验
+
+当前项目仍未完成：
+
+- 真实微信 `code -> openid` 远程交换
+- 将 `openid` 绑定或创建为内部用户
+- 生产环境下基于微信授权完成登录态建立
 
 ### 5.3 微信平台侧还需要确认
 
@@ -196,6 +228,7 @@ https://api.example.com/api/payments/wechat/notify
 
 - [001_initial_schema.sql](/Users/zhaowentao/Documents/WorkSpace/NodeJS/PaiPan/server/db/migrations/001_initial_schema.sql)
 - [002_order_payment_flow.sql](/Users/zhaowentao/Documents/WorkSpace/NodeJS/PaiPan/server/db/migrations/002_order_payment_flow.sql)
+- [003_user_identity.sql](/Users/zhaowentao/Documents/WorkSpace/NodeJS/PaiPan/server/db/migrations/003_user_identity.sql)
 
 执行命令：
 
@@ -285,7 +318,8 @@ PATH="$HOME/.nvm/versions/node/v22.16.0/bin:$PATH" node server/scripts/migrate.j
 
 - 微信支付 API v3 请求签名
 - 微信支付回调验签与报文解密
-- 用户 `openid` 获取与登录态管理
+- 微信 `code -> openid` 真实交换
+- `openid` 与内部用户绑定
 - 前端真实 JSAPI 调起
 - 支付取消、超时、补单处理
 - 订单对账与补偿任务
