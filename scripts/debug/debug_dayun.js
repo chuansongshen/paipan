@@ -1,5 +1,4 @@
-
-import { getBaZiPaiPan } from './src/utils/bazi.js';
+import { getBaZiPaiPan } from '../../src/utils/bazi.js';
 import { Lunar } from 'lunar-javascript';
 
 const date = new Date('1999-01-16T02:00:00');

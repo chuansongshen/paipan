@@ -10,6 +10,9 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "node --watch server/server.js",
+    "debug:dayun": "node scripts/debug/debug_dayun.js",
+    "debug:bazi": "node scripts/debug/reproduce_bazi.js",
+    "data:bundle-zhizhi": "node scripts/data/bundle_zhizhi.cjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

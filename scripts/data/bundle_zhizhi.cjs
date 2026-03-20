@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const sourceDir = path.join(__dirname, 'public', 'zhizhi');
-const outputFile = path.join(__dirname, 'src', 'utils', 'zhizhi_data.js');
+const sourceDir = path.join(__dirname, '..', '..', 'public', 'zhizhi');
+const outputFile = path.join(__dirname, '..', '..', 'src', 'utils', 'zhizhi_data.js');
 
 console.log('Bundling Zhi Zhi files...');
 
