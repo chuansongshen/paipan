@@ -679,11 +679,10 @@ function App() {
                   <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
-                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
-                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
-                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
-                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
-                      <li>发送给大模型，等待分析结果</li>
+                      <li>在下方 <strong>AI 解读</strong> 面板输入你当前最关心的问题，生成完整报告</li>
+                      <li>报告生成后，可继续围绕当前局势追问，并按需购买追问包</li>
+                      <li>如需保存原始盘面，可点击 <strong>「复制排盘」</strong> 按钮留档</li>
+                      <li>提问时尽量聚焦具体事项，例如时机判断、合作去留、行动顺序等</li>
                     </ol>
                   </Card>
                 </>
@@ -695,11 +694,10 @@ function App() {
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
                       <li>选择起卦方式：正时起卦或手动起卦</li>
-                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
-                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
-                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
-                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
-                      <li>发送给大模型，等待分析结果</li>
+                      <li>在下方 <strong>AI 解读</strong> 面板输入单一明确的问题，生成完整报告</li>
+                      <li>六爻更适合判断去留、合作、关系、求职、交易等具体事项</li>
+                      <li>如需保存原始盘面，可点击 <strong>「复制排盘」</strong> 按钮留档</li>
+                      <li>报告生成后，可继续围绕本卦、动爻、变卦对应的问题追问</li>
                     </ol>
                   </Card>
                 </ErrorBoundary>
@@ -726,11 +724,10 @@ function App() {
                       <li>默认先显示<strong>本命盘</strong>，此时<strong>大限 / 流年 / 流月 / 流日</strong>均未选中</li>
                       <li>在命盘下方按顺序点击<strong>大限 → 流年 → 流月 → 流日</strong>切换目标运限，未选上一级前下一级不会开放</li>
                       <li>如需精确时点，可直接修改底部的<strong>目标时间</strong></li>
-                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
-                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
-                      <li>将内容粘贴到大模型中</li>
-                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为具体问题</li>
-                      <li>结合命宫、身宫、十二宫和目标运限进行分析</li>
+                      <li>在下方 <strong>AI 解读</strong> 面板输入你关心的阶段问题，生成完整报告</li>
+                      <li>提问时建议说明你想看本命、某个大限、某个流年，或当前阶段重点</li>
+                      <li>如需保存当前盘面，可点击 <strong>「复制排盘」</strong> 按钮留档</li>
+                      <li>报告生成后，可继续围绕命宫、身宫、十二宫和目标运限追问</li>
                     </ol>
                   </Card>
                 </ErrorBoundary>
@@ -743,7 +740,8 @@ function App() {
                       <li><strong>⚠️ 注意：</strong>八字排盘需要修改<strong>日期时间为出生时间</strong>（阳历）</li>
                       <li>选择正确的<strong>性别</strong></li>
                       <li>可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
-                      <li>如需自行调试 Prompt，仍可点击 <strong>「复制排盘」</strong> 按钮</li>
+                      <li>如需保存原始盘面，可点击 <strong>「复制排盘」</strong> 按钮留档</li>
+                      <li>提问时可聚焦事业、财运、关系、阶段变化等具体主题</li>
                       <li>开发联调默认由后端直连 <strong>AI Studio API</strong>，生产再切换到 <strong>Vertex AI</strong></li>
                     </ol>
                   </Card>
@@ -755,11 +753,10 @@ function App() {
                   <Card title="📖 使用说明" size="small" style={{ marginTop: 24, background: '#f0f5ff' }}>
                     <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2, color: '#333' }}>
                       <li>修改<strong>性别</strong>和<strong>出生年份</strong>（农历年份），<strong>日期时间保持当前时间不变</strong></li>
-                      <li>也可直接使用下方 <strong>AI 解读</strong> 面板生成完整报告</li>
-                      <li>点击 <strong>「复制排盘」</strong> 按钮</li>
-                      <li>将内容粘贴到 <strong>Gemini 3.0 Pro</strong> 大模型中</li>
-                      <li>修改文本中 <strong>【*********你的问题*********】</strong> 为你要问的具体问题</li>
-                      <li>发送给大模型，等待分析结果</li>
+                      <li>在下方 <strong>AI 解读</strong> 面板输入具体事件问题，生成完整报告</li>
+                      <li>大六壬更适合分析事情如何演变、关键人事关系与结果落点</li>
+                      <li>如需保存原始盘面，可点击 <strong>「复制排盘」</strong> 按钮留档</li>
+                      <li>报告生成后，可继续围绕三传、四课、天地盘和应期追问</li>
                     </ol>
                   </Card>
                 </ErrorBoundary>

@@ -2,12 +2,12 @@
 
 ## 1. 目标范围
 
-本文档说明当前项目在生产环境上线时，`Gemini + 香港 Vertex AI + 微信支付` 这条链路所需的全部配置项。
+本文档说明当前项目在生产环境上线时，`Gemini + 香港部署 + 微信支付` 这条链路所需的全部配置项。
 
 当前代码状态：
 
 - 开发环境已经支持 `mock` 支付联调。
-- 生产环境的目标配置是 `Vertex AI + 微信支付 JSAPI`。
+- 生产环境支持两种 Gemini 后端：`studio` 和 `vertex`，通过 `GENAI_BACKEND` 切换。
 - 开发环境已经支持 `guest session` 自动创建。
 - 服务端已预留 `POST /api/auth/wechat/exchange` 接口位，但尚未真正接入微信 `code -> openid` 网络交换。
 - 微信支付真实签名、回调验签与解密还需要在拿到商户配置后继续接入。
@@ -17,7 +17,7 @@
 生产环境配置分成 4 类：
 
 1. 应用环境变量
-2. Google Cloud / Vertex AI 平台配置
+2. Gemini 平台配置
 3. 微信支付与微信身份体系配置
 4. 基础设施与业务后台配置
 
@@ -34,7 +34,7 @@ NODE_ENV=production
 PORT=8787
 LOG_LEVEL=info
 
-GENAI_BACKEND=vertex
+GENAI_BACKEND=studio
 PAYMENT_BACKEND=wechat
 DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
 SESSION_COOKIE_NAME=pai_pan_sid
@@ -43,10 +43,7 @@ SESSION_COOKIE_SECURE=true
 
 GEMINI_REPORT_MODEL=gemini-3.1-flash-lite-preview
 GEMINI_FOLLOW_UP_MODEL=gemini-3.1-flash-lite-preview
-
-VERTEX_PROJECT_ID=<google-cloud-project-id>
-VERTEX_LOCATION=asia-east2
-VERTEX_API_VERSION=v1
+GEMINI_API_KEY=<gemini-developer-api-key>
 
 WECHAT_APP_ID=<wechat-app-id>
 WECHAT_APP_SECRET=<wechat-app-secret>
@@ -57,6 +54,14 @@ WECHAT_OAUTH_SCOPE=snsapi_base
 WECHAT_API_V3_KEY=<wechat-api-v3-key>
 WECHAT_MCH_SERIAL_NO=<wechat-merchant-cert-serial-no>
 WECHAT_PRIVATE_KEY=<wechat-merchant-private-key-pem>
+```
+
+如果你选择 `GENAI_BACKEND=vertex`，还必须额外配置：
+
+```bash
+VERTEX_PROJECT_ID=<google-cloud-project-id>
+VERTEX_LOCATION=asia-east2
+VERTEX_API_VERSION=v1
 ```
 
 ### 3.2 服务端可选
@@ -87,9 +92,33 @@ OTEL_EXPORTER_OTLP_ENDPOINT=
 VITE_API_BASE_URL=https://<your-domain>
 ```
 
-## 4. Google Cloud / Vertex AI 配置
+## 4. Gemini 平台配置
 
-### 4.1 项目与计费
+### 4.1 `studio` 模式
+
+适用于：
+
+- 使用 Gemini Developer API / AI Studio key
+- 通过 `GEMINI_API_KEY` 直接调用
+
+必须完成：
+
+- 准备可用的 `GEMINI_API_KEY`
+- 确认部署环境可以稳定访问 Gemini Developer API
+- 确认配额、计费和调用限制满足生产流量
+
+建议：
+
+- 单独为生产环境使用独立 key
+- 配置调用配额和费用告警
+- 预留 `vertex` 作为兜底切换模式
+
+### 4.2 `vertex` 模式
+
+适用于：
+
+- 使用 Vertex AI 调用 Gemini
+- 需要更标准的 GCP 项目、区域和权限管理
 
 必须完成：
 
@@ -98,7 +127,7 @@ VITE_API_BASE_URL=https://<your-domain>
 - 开启 Vertex AI API
 - 确认目标模型在 `asia-east2 (Hong Kong)` 可用
 
-### 4.2 运行身份
+### 4.3 运行身份
 
 服务端访问 Vertex AI 需要一套 Google 身份，常见做法有两种：
 
@@ -115,7 +144,7 @@ VITE_API_BASE_URL=https://<your-domain>
 - `Vertex AI User`
 - 读取项目配额与模型调用所需的最小权限
 
-### 4.3 模型配置建议
+### 4.4 模型配置建议
 
 当前项目约束的模型白名单是：
 
@@ -130,10 +159,12 @@ VITE_API_BASE_URL=https://<your-domain>
 
 如果后续要做 AB 实验，再通过环境变量切换。
 
-### 4.4 配额与告警
+### 4.5 配额与告警
 
 上线前建议配置：
 
+- Gemini Developer API 请求量告警
+- Gemini Developer API 费用预算告警
 - Vertex AI 请求量告警
 - 费用预算告警
 - 5xx/4xx 失败率告警
@@ -247,7 +278,7 @@ PATH="$HOME/.nvm/versions/node/v22.16.0/bin:$PATH" node server/scripts/migrate.j
 建议：
 
 - API 服务部署在香港
-- 保证到 Google Cloud Vertex AI 的外网连通性
+- 保证到 Gemini Developer API 或 Vertex AI 的外网连通性
 - 使用反向代理统一暴露 HTTPS
 
 建议具备：
@@ -302,15 +333,16 @@ PATH="$HOME/.nvm/versions/node/v22.16.0/bin:$PATH" node server/scripts/migrate.j
 生产切换前至少确认以下项全部完成：
 
 1. `NODE_ENV=production`
-2. `GENAI_BACKEND=vertex`
+2. `GENAI_BACKEND` 已明确设置为 `studio` 或 `vertex`
 3. `PAYMENT_BACKEND=wechat`
 4. `DATABASE_URL` 已配置并完成迁移
 5. `VITE_API_BASE_URL` 已指向生产 API
-6. Vertex AI 项目、计费、权限、配额全部就绪
-7. 微信支付商户配置已就绪
-8. `openid` 获取链路已实现
-9. `WECHAT_NOTIFY_URL` 已可从公网访问
-10. 咨询位和商品位链接已替换成真实承接链接
+6. 若使用 `studio`，`GEMINI_API_KEY`、配额和计费已就绪
+7. 若使用 `vertex`，Vertex AI 项目、计费、权限、配额全部就绪
+8. 微信支付商户配置已就绪
+9. `openid` 获取链路已实现
+10. `WECHAT_NOTIFY_URL` 已可从公网访问
+11. 咨询位和商品位链接已替换成真实承接链接
 
 ## 10. 当前仍待实现的生产项
 
@@ -328,7 +360,8 @@ PATH="$HOME/.nvm/versions/node/v22.16.0/bin:$PATH" node server/scripts/migrate.j
 
 最合理的生产化顺序：
 
-1. 先拿到微信支付商户配置
-2. 再补 `openid` 获取链路
-3. 然后接微信支付回调验签与解密
-4. 最后联调整条 `支付 -> 报告解锁 -> 追问包 -> 对账` 链路
+1. 先明确生产使用 `studio` 还是 `vertex`，并配置对应密钥或项目
+2. 再拿到微信支付商户配置
+3. 然后补 `openid` 获取链路
+4. 接微信支付回调验签与解密
+5. 最后联调整条 `支付 -> 报告解锁 -> 追问包 -> 对账` 链路
