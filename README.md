@@ -115,6 +115,17 @@ docker-compose up -d --build
 http://localhost:8080
 ```
 
+## GitHub Pages
+
+GitHub Pages 不能直接发布仓库根目录下的开发入口 [index.html](/Users/zhaowentao/Documents/WorkSpace/NodeJS/PaiPan/index.html)，否则页面会去请求 `/src/main.jsx`，最终出现白屏或 `404`。
+
+当前仓库已经补上两项适配：
+
+- [vite.config.js](/Users/zhaowentao/Documents/WorkSpace/NodeJS/PaiPan/vite.config.js) 使用相对 `base`
+- [deploy-pages.yml](/Users/zhaowentao/Documents/WorkSpace/NodeJS/PaiPan/.github/workflows/deploy-pages.yml) 自动构建并发布 `dist/`
+
+请在 GitHub 仓库设置中将 Pages Source 设置为 `GitHub Actions`，不要继续使用 `Deploy from a branch`。
+
 ## 开源协议
 
 MIT
