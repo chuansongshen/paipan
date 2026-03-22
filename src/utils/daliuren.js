@@ -287,7 +287,8 @@ export const getDaLiuRenPaiPan = (date, birthYear, gender = '男') => {
   };
 
   // 5. San Chuan (Three Transmissions)
-  const sanChuan = getSanChuan(siKe, dayGan, dayZhi, tianPan);
+  const hourGan = hourGanZhi.substring(0, 1);
+  const sanChuan = getSanChuan(siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan);
 
   // 6. Tian Jiang (12 Generals)
   // Determine Day/Night Gui Ren
@@ -678,6 +679,125 @@ function createSanChuanResult(branches, dayGanZhi) {
   }));
 }
 
+function getWuXing(symbol) {
+  return WU_XING[symbol] || '';
+}
+
+function hasSameWuXing(left, right) {
+  const leftWuXing = getWuXing(left);
+  const rightWuXing = getWuXing(right);
+  return Boolean(leftWuXing) && leftWuXing === rightWuXing;
+}
+
+function getEarthBranchBySkyBranch(targetSkyBranch, tianPan) {
+  const earthIdx = tianPan.indexOf(targetSkyBranch);
+  return earthIdx === -1 ? '' : ZHI[earthIdx];
+}
+
+function buildSanChuanFromInitial(chuChuan, dayGan, dayZhi, tianPan) {
+  if (!chuChuan) {
+    throw new Error('初传不能为空');
+  }
+
+  const chuChuanIdx = getZhiIdx(chuChuan);
+  if (chuChuanIdx === -1) {
+    throw new Error(`无法定位初传地支: ${chuChuan}`);
+  }
+
+  const zhongChuan = tianPan[chuChuanIdx];
+  const zhongChuanIdx = getZhiIdx(zhongChuan);
+  if (!zhongChuan || zhongChuanIdx === -1) {
+    throw new Error(`无法定位中传地支: 初传=${chuChuan}`);
+  }
+
+  const moChuan = tianPan[zhongChuanIdx];
+  if (!moChuan) {
+    throw new Error(`无法定位末传地支: 中传=${zhongChuan}`);
+  }
+
+  return createSanChuanResult([chuChuan, zhongChuan, moChuan], dayGan + dayZhi);
+}
+
+function analyzeSanChuanContext(siKe, dayGan) {
+  const kes = [siKe.first, siKe.second, siKe.third, siKe.fourth];
+  const zeis = [];
+  const kesMatches = [];
+  const heavenBranches = kes.map((ke) => ke.zhi);
+  const yaoKes = [];
+  const gaoKes = [];
+
+  kes.forEach((ke, index) => {
+    if (overcomes(ke.gan, ke.zhi)) {
+      zeis.push({ ...ke, index });
+    }
+    if (overcomes(ke.zhi, ke.gan)) {
+      kesMatches.push({ ...ke, index });
+    }
+  });
+
+  heavenBranches.forEach((zhi, index) => {
+    if (overcomes(dayGan, zhi)) {
+      yaoKes.push({ zhi, index });
+    }
+    if (overcomes(zhi, dayGan)) {
+      gaoKes.push({ zhi, index });
+    }
+  });
+
+  return {
+    kes,
+    zeis,
+    kesMatches,
+    heavenBranches,
+    yaoKes,
+    gaoKes
+  };
+}
+
+function tryReferenceInspiredBiYong(context, siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan) {
+  // 对照 GitHub 参考实现 kinliuren，补足当前工程在多贼克场景下的两类常见误判。
+  if (!YANG_DAY_GAN.has(dayGan) || context.zeis.length < 2 || !hasSameWuXing(dayGan, hourGan)) {
+    return null;
+  }
+
+  if (context.kesMatches.length === 1) {
+    return buildSanChuanFromInitial(siKe.fourth.zhi, dayGan, dayZhi, tianPan);
+  }
+
+  if (context.kesMatches.length === 0 && !hasSameWuXing(hourGan, hourZhi)) {
+    return buildSanChuanFromInitial(siKe.fourth.zhi, dayGan, dayZhi, tianPan);
+  }
+
+  return null;
+}
+
+function getMaoXingSanChuan(siKe, dayGan, dayZhi, tianPan) {
+  const dayGanZhi = dayGan + dayZhi;
+
+  if (YANG_DAY_GAN.has(dayGan)) {
+    const chu = tianPan[getZhiIdx('酉')];
+    const zhong = tianPan[getZhiIdx(dayZhi)];
+    const mo = siKe?.first?.zhi;
+
+    if (!chu || !zhong || !mo) {
+      throw new Error(`昴星法取传失败: ${dayGanZhi}`);
+    }
+
+    return createSanChuanResult([chu, zhong, mo], dayGanZhi);
+  }
+
+  const jiGong = JI_GONG[dayGan];
+  const chu = getEarthBranchBySkyBranch('酉', tianPan);
+  const zhong = tianPan[getZhiIdx(jiGong)];
+  const mo = siKe?.third?.zhi;
+
+  if (!chu || !zhong || !mo) {
+    throw new Error(`昴星法取传失败: ${dayGanZhi}`);
+  }
+
+  return createSanChuanResult([chu, zhong, mo], dayGanZhi);
+}
+
 function getFuYinFaYong(siKe, dayGan) {
   const ganShang = siKe?.first?.zhi;
   const zhiShang = siKe?.third?.zhi;
@@ -742,7 +862,7 @@ function getFuYinSanChuan(siKe, dayGan, dayZhi) {
   return createSanChuanResult([chu, zhong, mo], dayGanZhi);
 }
 
-function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
+function getSanChuan(siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan) {
   if (isFuYinJu(tianPan)) {
     try {
       return getFuYinSanChuan(siKe, dayGan, dayZhi);
@@ -751,57 +871,36 @@ function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
     }
   }
 
-  // 1. Zei Ke (Overcoming)
-  // Check each of the 4 Kes: Lower (Earth) overcomes Upper (Heaven) -> Zei (Bandit)
-  // Upper (Heaven) overcomes Lower (Earth) -> Ke (Overcoming)
-  // We need 5 Elements relationship
-
-  const kes = [siKe.first, siKe.second, siKe.third, siKe.fourth];
-  const zeis = []; // Lower overcomes Upper (Earth overcomes Heaven) - actually usually called "Zei" (Bandit)
-  const kes_matches = []; // Upper overcomes Lower (Heaven overcomes Earth) - "Ke"
-  
-  // Note: In Liu Ren, 
-  // Lower = Earth Plate (The 'Gan' or 'Zhi' position in the Ke structure)
-  // Upper = Heaven Plate (The 'Zhi' in the Ke structure)
-  // Wait, my SiKe structure: { gan: '甲', zhi: '寅' } -> 'gan' is the bottom (Earth/Station), 'zhi' is the top (Heaven).
-  // For 1st Ke: Gan (Earth) -> Heaven Branch.
-  // For 2nd Ke: 1st Heaven (as Earth) -> Its Heaven.
-  
-  kes.forEach((k, i) => {
-    // k.gan is Bottom, k.zhi is Top
-    if (overcomes(k.gan, k.zhi)) {
-      // Bottom overcomes Top -> Zei (Bandit) - inverse?
-      // Wait, standard terminology:
-      // Top overcomes Bottom = Ke (Ke)
-      // Bottom overcomes Top = Zei (Bandit)
-      zeis.push({ ...k, index: i });
-    }
-    if (overcomes(k.zhi, k.gan)) {
-      // Top overcomes Bottom = Ke
-      kes_matches.push({ ...k, index: i });
-    }
-  });
-  
+  const context = analyzeSanChuanContext(siKe, dayGan);
   let chuChuan = '';
-  
-  // Rule 1: Zei Ke
-  // If there are Zei (Bottom overcomes Top), take Zei.
-  // If multiple Zei, compare with Day Gan (Bi Yong).
-  // If no Zei, take Ke (Top overcomes Bottom).
-  // If multiple Ke, compare with Day Gan (Bi Yong).
-  
   let candidates = [];
-  if (zeis.length > 0) {
-    candidates = zeis; // Prioritize Zei (called "Shi" - Start?) No, usually "Zei Ke" method prioritizes the one that is "Zei".
-    // Actually, the rule is: "Xia Ke Shang Wei Zei, Shang Ke Xia Wei Ke".
-    // "Zei" is more urgent. If there is Zei, use Zei.
-  } else if (kes_matches.length > 0) {
-    candidates = kes_matches;
+  if (context.zeis.length > 0) {
+    candidates = context.zeis;
+  } else if (context.kesMatches.length > 0) {
+    candidates = context.kesMatches;
   }
-  
+
   if (candidates.length === 1) {
     chuChuan = candidates[0].zhi;
   } else if (candidates.length > 1) {
+    try {
+      const referenceInspiredSanChuan = tryReferenceInspiredBiYong(
+        context,
+        siKe,
+        dayGan,
+        dayZhi,
+        hourGan,
+        hourZhi,
+        tianPan
+      );
+
+      if (referenceInspiredSanChuan) {
+        return referenceInspiredSanChuan;
+      }
+    } catch (error) {
+      console.warn('[DaLiuRen] 参考修正规则未能命中，继续走原有涉害逻辑:', error);
+    }
+
     // 多贼克并见时，走简化涉害评分：
     // 统计该支在 12 支序列中与其他支形成生克冲突的次数（克出/受克）。
     // 注意：这是工程化近似，并非古法全量推演。
@@ -861,64 +960,21 @@ function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
     }
   } else {
     // No Zei and No Ke -> Yao Ke (Remote Overcoming)
-    // Compare Day Gan with the Heaven Branches of the 4 Kes (siKe.first.zhi, etc.)
-    // But wait, Yao Ke is specifically Day Gan vs the 3rd/4th/2nd?
-    // Rule: Look for Day Gan overcoming Heaven Branches (Yao Ke).
-    // If none, look for Heaven Branches overcoming Day Gan (Gao Ke).
-    
-    const heavenBranches = [siKe.first.zhi, siKe.second.zhi, siKe.third.zhi, siKe.fourth.zhi];
-    const yaoKes = []; // Day Gan overcomes Heaven
-    const gaoKes = []; // Heaven overcomes Day Gan
-    
-    heavenBranches.forEach((zhi, i) => {
-      // Day Gan overcomes Heaven Branch?
-      // Need to convert Branch to Element
-      if (overcomes(dayGan, zhi)) {
-        yaoKes.push({ zhi, index: i });
-      }
-      if (overcomes(zhi, dayGan)) {
-        gaoKes.push({ zhi, index: i });
-      }
-    });
-    
-    if (yaoKes.length > 0) {
-      // Take the first Yao Ke?
-      // If multiple, compare Bi Yong?
-      // Simplified: Take first.
-      chuChuan = yaoKes[0].zhi;
-    } else if (gaoKes.length > 0) {
-      chuChuan = gaoKes[0].zhi;
+    if (context.yaoKes.length > 0) {
+      chuChuan = context.yaoKes[0].zhi;
+    } else if (context.gaoKes.length > 0) {
+      chuChuan = context.gaoKes[0].zhi;
     } else {
-      // Mao Xing (Subterranean) - No Yao Ke either.
-      // Yang Day: Gan on Shen (Day Gui Ren?) No.
-      // Yin Day: Zhi on ...
-      // Simplified fallback: Just take the 1st Ke's Top for now.
+      try {
+        return getMaoXingSanChuan(siKe, dayGan, dayZhi, tianPan);
+      } catch (error) {
+        console.warn('[DaLiuRen] 昴星法取传失败，回退到一课上神:', error);
+      }
       chuChuan = siKe.first.zhi;
     }
   }
-  
-  // Zhong Chuan: Heaven Branch on Chu Chuan's position (Earth)
-  // Find Chu Chuan on Earth Plate
-  // tianPan array: index is Earth Branch (0=Zi, 1=Chou...), value is Heaven Branch
-  const chuChuanIdx = getZhiIdx(chuChuan);
-  const zhongChuan = tianPan[chuChuanIdx];
-  
-  // Mo Chuan: Heaven Branch on Zhong Chuan's position (Earth)
-  const zhongChuanIdx = getZhiIdx(zhongChuan);
-  const moChuan = tianPan[zhongChuanIdx];
-  
-  // Add Dun Gan (Hidden Stem) to San Chuan
-  // Based on Day Xun
-  const dayGanZhi = dayGan + dayZhi;
-  const chuGan = getDunGan(dayGan, chuChuan, dayGanZhi);
-  const zhongGan = getDunGan(dayGan, zhongChuan, dayGanZhi);
-  const moGan = getDunGan(dayGan, moChuan, dayGanZhi);
-  
-  return [
-    { gan: chuGan, zhi: chuChuan },
-    { gan: zhongGan, zhi: zhongChuan },
-    { gan: moGan, zhi: moChuan }
-  ]; 
+
+  return buildSanChuanFromInitial(chuChuan, dayGan, dayZhi, tianPan);
 }
 
 function getDunGan(dayGan, branch, dayGanZhi) {
