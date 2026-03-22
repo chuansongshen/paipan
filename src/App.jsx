@@ -11,6 +11,7 @@ import {
 import { buildZiWeiCopyText } from './utils/ziwei_copy';
 import QimenDisk from './components/QimenDisk';
 import DaLiuRenDisk from './components/DaLiuRenDisk';
+import DaLiuRenProPage from './components/DaLiuRenProPage';
 import LiuYaoDisk from './components/LiuYaoDisk';
 import BaZiDisk from './components/BaZiDisk';
 import dayjs from 'dayjs';
@@ -18,7 +19,7 @@ import {
   ConfigProvider, Layout, Typography, Segmented, DatePicker, 
   Radio, InputNumber, Button, Card, Space, Spin, message 
 } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import { CopyOutlined, EllipsisOutlined } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
 import 'dayjs/locale/zh-cn';
 import './index.css';
@@ -40,6 +41,19 @@ const createEmptyZiWeiSelection = () => ({ ...EMPTY_ZIWEI_SELECTION });
 
 const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const getZhiIdx = (z) => ZHI.indexOf(z);
+const PANEL_CONTROL_ROW_STYLE = Object.freeze({
+  width: '100%',
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'flex-end',
+  gap: 16
+});
+const PANEL_ACTIONS_STYLE = Object.freeze({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 16
+});
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -72,6 +86,7 @@ function App() {
   const [date, setDate] = useState(dayjs());
   const [method, setMethod] = useState('chaibu');
   const [appMode, setAppMode] = useState('qimen'); // 'qimen', 'daliuren', 'liuyao', 'bazi', 'ziwei'
+  const [daliurenPage, setDaliurenPage] = useState('disk'); // 'disk' or 'pro'
   const [birthYear, setBirthYear] = useState(2000);
   const [gender, setGender] = useState('男'); // '男' or '女'
   const [ziweiTargetMode, setZiweiTargetMode] = useState('birth'); // 'birth', 'now' or 'custom'
@@ -86,8 +101,14 @@ function App() {
   const [liuyaoInputMode, setLiuyaoInputMode] = useState('time'); // 'time' or 'manual'
   const [manualYao, setManualYao] = useState([7, 7, 7, 7, 7, 7]); // Default to all 少阳
 
+  const isDaLiuRenProPage = appMode === 'daliuren' && daliurenPage === 'pro';
+
   const syncPanData = useMemo(() => {
     try {
+      if (appMode === 'daliuren' && daliurenPage === 'pro') {
+        return null;
+      }
+
       const d = date.toDate();
       if (appMode === 'qimen') {
         return getPaiPan(d, method);
@@ -108,7 +129,13 @@ function App() {
       console.error("Calculation Error:", e);
       return { error: e.message };
     }
-  }, [appMode, birthYear, date, gender, liuyaoInputMode, manualYao, method]);
+  }, [appMode, birthYear, daliurenPage, date, gender, liuyaoInputMode, manualYao, method]);
+
+  useEffect(() => {
+    if (appMode !== 'daliuren' && daliurenPage !== 'disk') {
+      setDaliurenPage('disk');
+    }
+  }, [appMode, daliurenPage]);
 
   useEffect(() => {
     if (appMode !== 'ziwei' || ziweiTargetMode !== 'now') {
@@ -562,6 +589,10 @@ function App() {
   ];
 
   const getModeTitle = () => {
+    if (isDaLiuRenProPage) {
+      return '大六壬专业计算' + (window.electron ? ' (Electron)' : ' (Web)');
+    }
+
     const titles = {
       qimen: '奇门遁甲排盘',
       daliuren: '大六壬排盘',
@@ -617,92 +648,116 @@ function App() {
                 </div>
 
                 {/* Controls */}
-                <Space wrap size="middle" style={{ width: '100%' }}>
-                  <Space orientation="vertical" size="small">
-                    <span style={{ fontSize: 12, color: '#666' }}>
-                      {appMode === 'bazi' || appMode === 'ziwei' ? '出生时间' : '日期时间'}
-                    </span>
-                    <DatePicker
-                      showTime
-                      value={date}
-                      onChange={(value) => value && setDate(value)}
-                      format="YYYY-MM-DD HH:mm"
-                      allowClear={false}
-                    />
-                  </Space>
-                  
-                  {appMode === 'qimen' ? (
+                {isDaLiuRenProPage ? (
+                  <Space wrap size="middle" style={{ width: '100%' }}>
                     <Space orientation="vertical" size="small">
-                      <span style={{ fontSize: 12, color: '#666' }}>定局方式</span>
-                      <Radio.Group 
-                        value={method} 
-                        onChange={(e) => setMethod(e.target.value)}
-                        optionType="button"
-                        buttonStyle="solid"
-                      >
-                        <Radio.Button value="chaibu">拆补法</Radio.Button>
-                        <Radio.Button value="zhirun">置润法</Radio.Button>
-                      </Radio.Group>
+                      <span style={{ fontSize: 12, color: '#666' }}>说明</span>
+                      <span style={{ fontSize: 14, color: '#333' }}>
+                        专业计算页面按日期范围批量输出三传，普通排盘仍可从返回按钮切回。
+                      </span>
                     </Space>
-                  ) : (
-                    <>
-                      {appMode !== 'bazi' && appMode !== 'ziwei' && (
+                  </Space>
+                ) : (
+                  <div style={PANEL_CONTROL_ROW_STYLE}>
+                    <Space orientation="vertical" size="small">
+                      <span style={{ fontSize: 12, color: '#666' }}>
+                        {appMode === 'bazi' || appMode === 'ziwei' ? '出生时间' : '日期时间'}
+                      </span>
+                      <DatePicker
+                        showTime
+                        value={date}
+                        onChange={(value) => value && setDate(value)}
+                        format="YYYY-MM-DD HH:mm"
+                        allowClear={false}
+                      />
+                    </Space>
+                    
+                    {appMode === 'qimen' ? (
+                      <Space orientation="vertical" size="small">
+                        <span style={{ fontSize: 12, color: '#666' }}>定局方式</span>
+                        <Radio.Group 
+                          value={method} 
+                          onChange={(e) => setMethod(e.target.value)}
+                          optionType="button"
+                          buttonStyle="solid"
+                        >
+                          <Radio.Button value="chaibu">拆补法</Radio.Button>
+                          <Radio.Button value="zhirun">置润法</Radio.Button>
+                        </Radio.Group>
+                      </Space>
+                    ) : (
+                      <>
+                        {appMode !== 'bazi' && appMode !== 'ziwei' && (
+                          <Space orientation="vertical" size="small">
+                            <span style={{ fontSize: 12, color: '#666' }}>出生年份</span>
+                            <InputNumber
+                              value={birthYear}
+                              onChange={(value) => setBirthYear(value || 2000)}
+                              min={1900}
+                              max={2100}
+                              style={{ width: 100 }}
+                            />
+                          </Space>
+                        )}
                         <Space orientation="vertical" size="small">
-                          <span style={{ fontSize: 12, color: '#666' }}>出生年份</span>
-                          <InputNumber
-                            value={birthYear}
-                            onChange={(value) => setBirthYear(value || 2000)}
-                            min={1900}
-                            max={2100}
-                            style={{ width: 100 }}
-                          />
+                          <span style={{ fontSize: 12, color: '#666' }}>性别</span>
+                          <Radio.Group 
+                            value={gender} 
+                            onChange={(e) => setGender(e.target.value)}
+                            optionType="button"
+                            buttonStyle="solid"
+                          >
+                            <Radio.Button value="男">男</Radio.Button>
+                            <Radio.Button value="女">女</Radio.Button>
+                          </Radio.Group>
                         </Space>
-                      )}
-                      <Space orientation="vertical" size="small">
-                        <span style={{ fontSize: 12, color: '#666' }}>性别</span>
-                        <Radio.Group 
-                          value={gender} 
-                          onChange={(e) => setGender(e.target.value)}
-                          optionType="button"
-                          buttonStyle="solid"
-                        >
-                          <Radio.Button value="男">男</Radio.Button>
-                          <Radio.Button value="女">女</Radio.Button>
-                        </Radio.Group>
-                      </Space>
-                    </>
-                  )}
+                      </>
+                    )}
 
-                  {appMode === 'liuyao' && (
-                    <>
-                      <Space orientation="vertical" size="small">
-                        <span style={{ fontSize: 12, color: '#666' }}>起卦方式</span>
-                        <Radio.Group 
-                          value={liuyaoInputMode} 
-                          onChange={(e) => setLiuyaoInputMode(e.target.value)}
-                          optionType="button"
-                          buttonStyle="solid"
+                    {appMode === 'liuyao' && (
+                      <>
+                        <Space orientation="vertical" size="small">
+                          <span style={{ fontSize: 12, color: '#666' }}>起卦方式</span>
+                          <Radio.Group 
+                            value={liuyaoInputMode} 
+                            onChange={(e) => setLiuyaoInputMode(e.target.value)}
+                            optionType="button"
+                            buttonStyle="solid"
+                          >
+                            <Radio.Button value="time">正时起卦</Radio.Button>
+                            <Radio.Button value="manual">手动起卦</Radio.Button>
+                          </Radio.Group>
+                        </Space>
+                      </>
+                    )}
+
+                    <div style={PANEL_ACTIONS_STYLE}>
+                      <Button 
+                        type="primary" 
+                        icon={<CopyOutlined />}
+                        onClick={copyToClipboard}
+                        disabled={isCopyDisabled}
+                      >
+                        复制排盘
+                      </Button>
+
+                      {appMode === 'daliuren' && (
+                        <Button
+                          icon={<EllipsisOutlined />}
+                          onClick={() => {
+                            console.log('[DaLiuRen][Pro] 进入专业计算页面');
+                            setDaliurenPage('pro');
+                          }}
                         >
-                          <Radio.Button value="time">正时起卦</Radio.Button>
-                          <Radio.Button value="manual">手动起卦</Radio.Button>
-                        </Radio.Group>
-                      </Space>
-                    </>
-                  )}
-                  
-                  <Button 
-                    type="primary" 
-                    icon={<CopyOutlined />}
-                    onClick={copyToClipboard}
-                    disabled={isCopyDisabled}
-                    style={{ alignSelf: 'flex-end' }}
-                  >
-                    复制排盘
-                  </Button>
-                </Space>
+                          更多
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Manual Yao Selection for Liu Yao */}
-                {appMode === 'liuyao' && liuyaoInputMode === 'manual' && (
+                {!isDaLiuRenProPage && appMode === 'liuyao' && liuyaoInputMode === 'manual' && (
                   <div>
                     <span style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8 }}>
                       手动指定六爻 (从下到上)
@@ -835,6 +890,17 @@ function App() {
                       <li>发送给大模型，等待分析结果</li>
                     </ol>
                   </Card>
+                </ErrorBoundary>
+              ) : isDaLiuRenProPage ? (
+                <ErrorBoundary>
+                  <DaLiuRenProPage
+                    birthYear={birthYear}
+                    gender={gender}
+                    onBack={() => {
+                      console.log('[DaLiuRen][Pro] 返回普通排盘页面');
+                      setDaliurenPage('disk');
+                    }}
+                  />
                 </ErrorBoundary>
               ) : (
                 <ErrorBoundary>
