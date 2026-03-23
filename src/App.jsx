@@ -17,7 +17,7 @@ import BaZiDisk from './components/BaZiDisk';
 import dayjs from 'dayjs';
 import { 
   ConfigProvider, Layout, Typography, Segmented, DatePicker, 
-  Radio, InputNumber, Button, Card, Space, Spin, message 
+  TimePicker, Radio, InputNumber, Button, Card, Space, Spin, message 
 } from 'antd';
 import { CopyOutlined, EllipsisOutlined } from '@ant-design/icons';
 import zhCN from 'antd/locale/zh_CN';
@@ -341,6 +341,49 @@ function App() {
     setZiweiTargetMode('birth');
   };
 
+  const handleMainDateChange = (nextDate) => {
+    try {
+      if (!dayjs.isDayjs(nextDate) || !nextDate.isValid()) {
+        throw new Error('主页日期无效');
+      }
+
+      const mergedDate = date
+        .year(nextDate.year())
+        .month(nextDate.month())
+        .date(nextDate.date());
+
+      console.log('[App] 更新主页日期', {
+        date: mergedDate.format('YYYY-MM-DD'),
+        time: mergedDate.format('HH:mm')
+      });
+      setDate(mergedDate);
+    } catch (error) {
+      console.error('[App] 更新主页日期失败', error);
+    }
+  };
+
+  const handleMainTimeChange = (nextTime) => {
+    try {
+      if (!dayjs.isDayjs(nextTime) || !nextTime.isValid()) {
+        throw new Error('主页时间无效');
+      }
+
+      const mergedDate = date
+        .hour(nextTime.hour())
+        .minute(nextTime.minute())
+        .second(0)
+        .millisecond(0);
+
+      console.log('[App] 更新主页时间', {
+        date: mergedDate.format('YYYY-MM-DD'),
+        time: mergedDate.format('HH:mm')
+      });
+      setDate(mergedDate);
+    } catch (error) {
+      console.error('[App] 更新主页时间失败', error);
+    }
+  };
+
   const formatPanData = () => {
     if (appMode === 'ziwei' && ziweiLoading) {
       return '紫微斗数排盘加载中，请稍后再试';
@@ -661,13 +704,25 @@ function App() {
                   <div style={PANEL_CONTROL_ROW_STYLE}>
                     <Space orientation="vertical" size="small">
                       <span style={{ fontSize: 12, color: '#666' }}>
-                        {appMode === 'bazi' || appMode === 'ziwei' ? '出生时间' : '日期时间'}
+                        {appMode === 'bazi' || appMode === 'ziwei' ? '出生日期' : '日期'}
                       </span>
                       <DatePicker
-                        showTime
                         value={date}
-                        onChange={(value) => value && setDate(value)}
-                        format="YYYY-MM-DD HH:mm"
+                        onChange={handleMainDateChange}
+                        format="YYYY-MM-DD"
+                        allowClear={false}
+                      />
+                    </Space>
+
+                    <Space orientation="vertical" size="small">
+                      <span style={{ fontSize: 12, color: '#666' }}>
+                        {appMode === 'bazi' || appMode === 'ziwei' ? '出生时间' : '时间'}
+                      </span>
+                      <TimePicker
+                        value={date}
+                        onChange={handleMainTimeChange}
+                        format="HH:mm"
+                        minuteStep={1}
                         allowClear={false}
                       />
                     </Space>

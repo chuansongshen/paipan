@@ -11,7 +11,11 @@ import {
   Typography,
   message
 } from 'antd';
-import { ArrowLeftOutlined, CalculatorOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  CalculatorOutlined,
+  DownloadOutlined
+} from '@ant-design/icons';
 import { getDaLiuRenPaiPan } from '../utils/daliuren';
 
 const { RangePicker } = DatePicker;
@@ -20,6 +24,19 @@ const { Paragraph, Text, Title } = Typography;
 const LOGGER_PREFIX = '[DaLiuRen][Pro]';
 const DEFAULT_RANGE = [dayjs().startOf('day'), dayjs().startOf('day')];
 const DEFAULT_TIME = dayjs().second(0);
+const CONTROL_ROW_STYLE = {
+  width: '100%',
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'flex-end',
+  gap: 16
+};
+const ACTIONS_STYLE = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 12
+};
 
 const buildRows = (dateRange, timePoint, birthYear, gender) => {
   if (!Array.isArray(dateRange) || dateRange.length !== 2) {
@@ -92,11 +109,27 @@ const buildRows = (dateRange, timePoint, birthYear, gender) => {
   return rows;
 };
 
+const buildExportFileName = (dateRange, timePoint) => {
+  const [startDate, endDate] = Array.isArray(dateRange) ? dateRange : [];
+  const startText = dayjs.isDayjs(startDate) && startDate.isValid()
+    ? startDate.format('YYYY-MM-DD')
+    : '开始日期';
+  const endText = dayjs.isDayjs(endDate) && endDate.isValid()
+    ? endDate.format('YYYY-MM-DD')
+    : '结束日期';
+  const timeText = dayjs.isDayjs(timePoint) && timePoint.isValid()
+    ? timePoint.format('HH-mm')
+    : '时间';
+
+  return `大六壬专业计算_${startText}_${endText}_${timeText}.xlsx`;
+};
+
 const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
   const [dateRange, setDateRange] = useState(DEFAULT_RANGE);
   const [timePoint, setTimePoint] = useState(DEFAULT_TIME);
   const [resultRows, setResultRows] = useState([]);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const errorCount = useMemo(
     () => resultRows.filter((row) => row.hasError).length,
@@ -124,6 +157,44 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
       message.error(wrappedError.message);
     } finally {
       setIsCalculating(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      if (resultRows.length === 0) {
+        throw new Error('暂无可导出的结果，请先完成计算');
+      }
+
+      setIsExporting(true);
+      console.log(`${LOGGER_PREFIX} 开始导出 XLSX`, {
+        total: resultRows.length,
+        failed: resultRows.filter((row) => row.hasError).length
+      });
+
+      const XLSX = await import('xlsx');
+      const exportRows = resultRows.map((row) => ({
+        日期: row.date,
+        初传: row.chu,
+        中传: row.zhong,
+        末传: row.mo
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const workbook = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, '三传结果');
+      XLSX.writeFile(workbook, buildExportFileName(dateRange, timePoint));
+
+      console.log(`${LOGGER_PREFIX} 导出 XLSX 成功`, {
+        total: exportRows.length
+      });
+      message.success(`导出成功，共导出 ${exportRows.length} 条记录`);
+    } catch (error) {
+      const wrappedError = error instanceof Error ? error : new Error('导出 XLSX 失败');
+      console.error(`${LOGGER_PREFIX} 导出 XLSX 失败`, wrappedError);
+      message.error(wrappedError.message);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -175,7 +246,7 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
             </Button>
           </Space>
 
-          <Space wrap size="middle">
+          <div style={CONTROL_ROW_STYLE}>
             <Space direction="vertical" size="small">
               <Text type="secondary">日期范围</Text>
               <RangePicker
@@ -200,16 +271,25 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
               />
             </Space>
 
-            <Button
-              type="primary"
-              icon={<CalculatorOutlined />}
-              loading={isCalculating}
-              onClick={handleCalculate}
-              style={{ alignSelf: 'flex-end' }}
-            >
-              计算
-            </Button>
-          </Space>
+            <div style={ACTIONS_STYLE}>
+              <Button
+                type="primary"
+                icon={<CalculatorOutlined />}
+                loading={isCalculating}
+                onClick={handleCalculate}
+              >
+                计算
+              </Button>
+              <Button
+                icon={<DownloadOutlined />}
+                loading={isExporting}
+                onClick={handleExport}
+                disabled={resultRows.length === 0}
+              >
+                导出 XLSX
+              </Button>
+            </div>
+          </div>
 
           {errorCount > 0 && (
             <Alert
