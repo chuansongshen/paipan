@@ -16,7 +16,7 @@ import {
   CalculatorOutlined,
   DownloadOutlined
 } from '@ant-design/icons';
-import { getDaLiuRenPaiPan } from '../utils/daliuren';
+import { buildDaLiuRenProRows } from '../utils/daliuren_pro';
 
 const { RangePicker } = DatePicker;
 const { Paragraph, Text, Title } = Typography;
@@ -36,77 +36,6 @@ const ACTIONS_STYLE = {
   flexWrap: 'wrap',
   alignItems: 'center',
   gap: 12
-};
-
-const buildRows = (dateRange, timePoint, birthYear, gender) => {
-  if (!Array.isArray(dateRange) || dateRange.length !== 2) {
-    throw new Error('请选择完整的日期范围');
-  }
-
-  const [startDate, endDate] = dateRange;
-  if (!dayjs.isDayjs(startDate) || !startDate.isValid()) {
-    throw new Error('开始日期无效');
-  }
-
-  if (!dayjs.isDayjs(endDate) || !endDate.isValid()) {
-    throw new Error('结束日期无效');
-  }
-
-  if (!dayjs.isDayjs(timePoint) || !timePoint.isValid()) {
-    throw new Error('时间无效');
-  }
-
-  const normalizedStart = startDate.startOf('day');
-  const normalizedEnd = endDate.startOf('day');
-
-  if (normalizedStart.isAfter(normalizedEnd, 'day')) {
-    throw new Error('开始日期不能晚于结束日期');
-  }
-
-  const rows = [];
-  let currentDate = normalizedStart;
-
-  // 批量计算逐日固定时点的三传，避免引入第二套排盘逻辑。
-  while (currentDate.isBefore(normalizedEnd, 'day') || currentDate.isSame(normalizedEnd, 'day')) {
-    const targetDate = currentDate
-      .hour(timePoint.hour())
-      .minute(timePoint.minute())
-      .second(0)
-      .millisecond(0);
-
-    try {
-      const pan = getDaLiuRenPaiPan(targetDate.toDate(), birthYear || 2000, gender || '男');
-      const [chu = {}, zhong = {}, mo = {}] = pan.sanChuan || [];
-
-      rows.push({
-        key: targetDate.format('YYYY-MM-DD'),
-        date: targetDate.format('YYYY-MM-DD'),
-        chu: chu.zhi || '-',
-        zhong: zhong.zhi || '-',
-        mo: mo.zhi || '-',
-        hasError: false
-      });
-    } catch (error) {
-      const wrappedError = error instanceof Error ? error : new Error('未知计算错误');
-      console.error(`${LOGGER_PREFIX} 批量计算失败`, {
-        date: targetDate.format('YYYY-MM-DD HH:mm'),
-        message: wrappedError.message
-      });
-
-      rows.push({
-        key: targetDate.format('YYYY-MM-DD'),
-        date: targetDate.format('YYYY-MM-DD'),
-        chu: '计算失败',
-        zhong: '-',
-        mo: '-',
-        hasError: true
-      });
-    }
-
-    currentDate = currentDate.add(1, 'day');
-  }
-
-  return rows;
 };
 
 const buildExportFileName = (dateRange, timePoint) => {
@@ -144,7 +73,7 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
         end: dateRange?.[1]?.format('YYYY-MM-DD') || '',
         time: timePoint?.format('HH:mm') || ''
       });
-      const rows = buildRows(dateRange, timePoint, birthYear, gender);
+      const rows = buildDaLiuRenProRows(dateRange, timePoint, birthYear, gender);
       setResultRows(rows);
       console.log(`${LOGGER_PREFIX} 批量计算完成`, {
         total: rows.length,
@@ -175,9 +104,15 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
       const XLSX = await import('xlsx');
       const exportRows = resultRows.map((row) => ({
         日期: row.date,
+        年柱: row.year,
+        月柱: row.month,
+        日柱: row.day,
         初传: row.chu,
+        初传坐支: row.chuSeat,
         中传: row.zhong,
-        末传: row.mo
+        中传坐支: row.zhongSeat,
+        末传: row.mo,
+        末传坐支: row.moSeat
       }));
       const worksheet = XLSX.utils.json_to_sheet(exportRows);
       const workbook = XLSX.utils.book_new();
@@ -206,9 +141,37 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
       width: 160
     },
     {
+      title: '年柱',
+      dataIndex: 'year',
+      key: 'year',
+      align: 'center',
+      width: 110
+    },
+    {
+      title: '月柱',
+      dataIndex: 'month',
+      key: 'month',
+      align: 'center',
+      width: 110
+    },
+    {
+      title: '日柱',
+      dataIndex: 'day',
+      key: 'day',
+      align: 'center',
+      width: 110
+    },
+    {
       title: '初传',
       dataIndex: 'chu',
       key: 'chu',
+      align: 'center',
+      width: 120
+    },
+    {
+      title: '初传坐支',
+      dataIndex: 'chuSeat',
+      key: 'chuSeat',
       align: 'center',
       width: 120
     },
@@ -220,9 +183,23 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
       width: 120
     },
     {
+      title: '中传坐支',
+      dataIndex: 'zhongSeat',
+      key: 'zhongSeat',
+      align: 'center',
+      width: 120
+    },
+    {
       title: '末传',
       dataIndex: 'mo',
       key: 'mo',
+      align: 'center',
+      width: 120
+    },
+    {
+      title: '末传坐支',
+      dataIndex: 'moSeat',
+      key: 'moSeat',
       align: 'center',
       width: 120
     }
@@ -238,7 +215,7 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
                 大六壬专业计算
               </Title>
               <Paragraph style={{ margin: '8px 0 0', color: '#666' }}>
-                按日期范围和固定时间批量计算每天的三传，仅输出地支结果。
+                按日期范围和固定时间批量计算每天的三传，输出年柱、月柱、日柱与三传坐支。
               </Paragraph>
             </div>
             <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
@@ -307,7 +284,7 @@ const DaLiuRenProPage = ({ birthYear, gender, onBack }) => {
           dataSource={resultRows}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{ emptyText: '请选择日期范围和时间后点击“计算”' }}
-          scroll={{ x: 520 }}
+          scroll={{ x: 1210 }}
         />
       </Card>
     </div>
