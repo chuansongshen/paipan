@@ -71,6 +71,18 @@ const LIU_CHONG_MAP = {
   '戌': '辰',
   '亥': '巳'
 };
+const GAN_WU_HE_MAP = {
+  '甲': '己',
+  '乙': '庚',
+  '丙': '辛',
+  '丁': '壬',
+  '戊': '癸',
+  '己': '甲',
+  '庚': '乙',
+  '辛': '丙',
+  '壬': '丁',
+  '癸': '戊'
+};
 
 // Get ZHI index
 const getZhiIdx = (z) => ZHI.indexOf(z);
@@ -287,8 +299,7 @@ export const getDaLiuRenPaiPan = (date, birthYear, gender = '男') => {
   };
 
   // 5. San Chuan (Three Transmissions)
-  const hourGan = hourGanZhi.substring(0, 1);
-  const sanChuan = getSanChuan(siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan);
+  const sanChuan = getSanChuan(siKe, dayGan, dayZhi, tianPan);
 
   // 6. Tian Jiang (12 Generals)
   // Determine Day/Night Gui Ren
@@ -660,6 +671,12 @@ function isFuYinJu(tianPan) {
     tianPan.every((zhi, index) => zhi === ZHI[index]);
 }
 
+function isFanYinJu(tianPan) {
+  return Array.isArray(tianPan) &&
+    tianPan.length === ZHI.length &&
+    tianPan.every((zhi, index) => zhi === getLiuChong(ZHI[index]));
+}
+
 function isFuYinSelfXing(zhi) {
   return FU_YIN_SELF_XING.has(zhi);
 }
@@ -672,6 +689,79 @@ function getLiuChong(zhi) {
   return LIU_CHONG_MAP[zhi] || '';
 }
 
+function getUniqueHeavenBranches(siKe) {
+  return [...new Set([
+    siKe?.first?.zhi,
+    siKe?.second?.zhi,
+    siKe?.third?.zhi,
+    siKe?.fourth?.zhi
+  ].filter(Boolean))];
+}
+
+function isSiKeQuan(siKe) {
+  return getUniqueHeavenBranches(siKe).length === 4;
+}
+
+function isBieZeKe(siKe) {
+  return getUniqueHeavenBranches(siKe).length === 3;
+}
+
+function isBaZhuanKe(siKe) {
+  const first = siKe?.first?.zhi;
+  const second = siKe?.second?.zhi;
+  const third = siKe?.third?.zhi;
+  const fourth = siKe?.fourth?.zhi;
+
+  return Boolean(first) &&
+    Boolean(second) &&
+    Boolean(third) &&
+    Boolean(fourth) &&
+    getUniqueHeavenBranches(siKe).length === 2 &&
+    first === third &&
+    second === fourth;
+}
+
+function getGanHeTopBranch(dayGan, tianPan) {
+  const heGan = GAN_WU_HE_MAP[dayGan];
+  const heGanJiGong = JI_GONG[heGan];
+  const heGanJiGongIdx = getZhiIdx(heGanJiGong);
+
+  if (!heGan || !heGanJiGong || heGanJiGongIdx === -1 || !Array.isArray(tianPan)) {
+    throw new Error(`无法定位干合上神: dayGan=${dayGan}`);
+  }
+
+  return tianPan[heGanJiGongIdx] || '';
+}
+
+function getAheadSanHeBranch(zhi) {
+  const zhiIdx = getZhiIdx(zhi);
+  if (zhiIdx === -1) {
+    throw new Error(`无法定位支前三合: ${zhi}`);
+  }
+
+  return ZHI[(zhiIdx + 4) % 12];
+}
+
+function getForwardThreeBranch(zhi) {
+  const zhiIdx = getZhiIdx(zhi);
+  if (zhiIdx === -1) {
+    throw new Error(`无法顺数三位: ${zhi}`);
+  }
+
+  // 连本位数，顺数三位即向前移动两宫。
+  return ZHI[(zhiIdx + 2) % 12];
+}
+
+function getBackwardThreeBranch(zhi) {
+  const zhiIdx = getZhiIdx(zhi);
+  if (zhiIdx === -1) {
+    throw new Error(`无法逆数三位: ${zhi}`);
+  }
+
+  // 连本位数，逆数三位即向后移动两宫。
+  return ZHI[(zhiIdx + 10) % 12];
+}
+
 function createSanChuanResult(branches, dayGanZhi) {
   return branches.map((zhi) => ({
     gan: getDunGan(dayGanZhi.substring(0, 1), zhi, dayGanZhi),
@@ -679,19 +769,228 @@ function createSanChuanResult(branches, dayGanZhi) {
   }));
 }
 
-function getWuXing(symbol) {
-  return WU_XING[symbol] || '';
-}
-
-function hasSameWuXing(left, right) {
-  const leftWuXing = getWuXing(left);
-  const rightWuXing = getWuXing(right);
-  return Boolean(leftWuXing) && leftWuXing === rightWuXing;
-}
-
 function getEarthBranchBySkyBranch(targetSkyBranch, tianPan) {
   const earthIdx = tianPan.indexOf(targetSkyBranch);
   return earthIdx === -1 ? '' : ZHI[earthIdx];
+}
+
+function getShangShenByKeIndex(siKe, keIndex) {
+  if (keIndex === 1) return siKe?.first?.zhi || '';
+  if (keIndex === 2) return siKe?.second?.zhi || '';
+  if (keIndex === 3) return siKe?.third?.zhi || '';
+  if (keIndex === 4) return siKe?.fourth?.zhi || '';
+  return '';
+}
+
+function getJiGongGanList(branch) {
+  return Object.entries(JI_GONG)
+    .filter(([, jiGong]) => jiGong === branch)
+    .map(([gan]) => gan);
+}
+
+function getCircularDistance(fromZhi, toZhi) {
+  const fromIdx = getZhiIdx(fromZhi);
+  const toIdx = getZhiIdx(toZhi);
+
+  if (fromIdx === -1 || toIdx === -1) {
+    throw new Error(`无法计算支位距离: from=${fromZhi}, to=${toZhi}`);
+  }
+
+  return (toIdx - fromIdx + 12) % 12;
+}
+
+function isMengBranch(zhi) {
+  const idx = getZhiIdx(zhi);
+  return [2, 5, 8, 11].includes(idx);
+}
+
+function isZhongBranch(zhi) {
+  const idx = getZhiIdx(zhi);
+  return [0, 3, 6, 9].includes(idx);
+}
+
+function dedupeCandidatesByBranch(candidates) {
+  const seen = new Set();
+  return candidates.filter((candidate) => {
+    if (!candidate?.zhi || seen.has(candidate.zhi)) {
+      return false;
+    }
+    seen.add(candidate.zhi);
+    return true;
+  });
+}
+
+function isZeiByKeIndex(siKe, keIndex) {
+  if (keIndex === 1) {
+    return overcomes(siKe?.first?.gan, siKe?.first?.zhi);
+  }
+  if (keIndex === 2) {
+    return overcomes(siKe?.second?.gan, siKe?.second?.zhi);
+  }
+  if (keIndex === 3) {
+    return overcomes(siKe?.third?.gan, siKe?.third?.zhi);
+  }
+  if (keIndex === 4) {
+    return overcomes(siKe?.fourth?.gan, siKe?.fourth?.zhi);
+  }
+  return false;
+}
+
+function getZeiCandidates(siKe) {
+  return dedupeCandidatesByBranch([
+    overcomes(siKe?.first?.gan, siKe?.first?.zhi) ? { index: 1, zhi: siKe.first.zhi, kind: 'zei' } : null,
+    overcomes(siKe?.second?.gan, siKe?.second?.zhi) ? { index: 2, zhi: siKe.second.zhi, kind: 'zei' } : null,
+    overcomes(siKe?.third?.gan, siKe?.third?.zhi) ? { index: 3, zhi: siKe.third.zhi, kind: 'zei' } : null,
+    overcomes(siKe?.fourth?.gan, siKe?.fourth?.zhi) ? { index: 4, zhi: siKe.fourth.zhi, kind: 'zei' } : null
+  ].filter(Boolean));
+}
+
+function getKeCandidates(siKe) {
+  return dedupeCandidatesByBranch([
+    overcomes(siKe?.first?.zhi, siKe?.first?.gan) ? { index: 1, zhi: siKe.first.zhi, kind: 'ke' } : null,
+    overcomes(siKe?.second?.zhi, siKe?.second?.gan) ? { index: 2, zhi: siKe.second.zhi, kind: 'ke' } : null,
+    overcomes(siKe?.third?.zhi, siKe?.third?.gan) ? { index: 3, zhi: siKe.third.zhi, kind: 'ke' } : null,
+    overcomes(siKe?.fourth?.zhi, siKe?.fourth?.gan) ? { index: 4, zhi: siKe.fourth.zhi, kind: 'ke' } : null
+  ].filter(Boolean));
+}
+
+function getBiYongCandidates(candidates, dayGan) {
+  const dayYang = YANG_DAY_GAN.has(dayGan);
+  return candidates.filter((candidate) => YANG_ZHI.has(candidate.zhi) === dayYang);
+}
+
+function calculateSheHaiDepth(candidate, siKe, tianPan) {
+  const branch = getShangShenByKeIndex(siKe, candidate.index);
+  const earthBranch = getEarthBranchBySkyBranch(branch, tianPan);
+
+  if (!branch || !earthBranch) {
+    throw new Error(`涉害深度计算失败: candidate=${JSON.stringify(candidate)}`);
+  }
+
+  const startIdx = getZhiIdx(earthBranch);
+  const distance = getCircularDistance(earthBranch, branch);
+  const isZei = isZeiByKeIndex(siKe, candidate.index);
+  let depth = 0;
+
+  for (let offset = 0; offset < distance; offset += 1) {
+    const currentBranch = ZHI[(startIdx + offset) % 12];
+    const jiGongGanList = getJiGongGanList(currentBranch);
+
+    if (isZei) {
+      if (overcomes(currentBranch, branch)) {
+        depth += 1;
+      }
+      jiGongGanList.forEach((gan) => {
+        if (overcomes(gan, branch)) {
+          depth += 1;
+        }
+      });
+    } else {
+      if (overcomes(branch, currentBranch)) {
+        depth += 1;
+      }
+      jiGongGanList.forEach((gan) => {
+        if (overcomes(branch, gan)) {
+          depth += 1;
+        }
+      });
+    }
+  }
+
+  return {
+    ...candidate,
+    earthBranch,
+    sheHaiDepth: depth
+  };
+}
+
+function resolveSheHaiInitial(tianPan, siKe, dayGan, candidates) {
+  const candidatesWithDepth = candidates.map((candidate) => calculateSheHaiDepth(candidate, siKe, tianPan));
+  const maxDepth = Math.max(...candidatesWithDepth.map((candidate) => candidate.sheHaiDepth));
+  const deepestCandidates = candidatesWithDepth.filter((candidate) => candidate.sheHaiDepth === maxDepth);
+
+  if (deepestCandidates.length === 1) {
+    return deepestCandidates[0].zhi;
+  }
+
+  const mengCandidates = deepestCandidates.filter((candidate) => isMengBranch(candidate.earthBranch));
+  if (mengCandidates.length === 1) {
+    return mengCandidates[0].zhi;
+  }
+  if (mengCandidates.length > 1) {
+    return YANG_DAY_GAN.has(dayGan) ? siKe?.first?.zhi || '' : siKe?.third?.zhi || '';
+  }
+
+  const zhongCandidates = deepestCandidates.filter((candidate) => isZhongBranch(candidate.earthBranch));
+  if (zhongCandidates.length === 1) {
+    return zhongCandidates[0].zhi;
+  }
+
+  return YANG_DAY_GAN.has(dayGan) ? siKe?.first?.zhi || '' : siKe?.third?.zhi || '';
+}
+
+function resolveBiYongOrSheHaiInitial(tianPan, siKe, dayGan, candidates) {
+  const biYongCandidates = getBiYongCandidates(candidates, dayGan);
+
+  if (biYongCandidates.length === 1) {
+    return biYongCandidates[0].zhi;
+  }
+
+  const sheHaiCandidates = biYongCandidates.length === 0 ? candidates : biYongCandidates;
+  return resolveSheHaiInitial(tianPan, siKe, dayGan, sheHaiCandidates);
+}
+
+function resolveZeiKeInitial(tianPan, siKe, dayGan) {
+  const zeiCandidates = getZeiCandidates(siKe);
+
+  if (zeiCandidates.length === 1) {
+    return zeiCandidates[0].zhi;
+  }
+  if (zeiCandidates.length > 1) {
+    return resolveBiYongOrSheHaiInitial(tianPan, siKe, dayGan, zeiCandidates);
+  }
+
+  const keCandidates = getKeCandidates(siKe);
+  if (keCandidates.length === 1) {
+    return keCandidates[0].zhi;
+  }
+  if (keCandidates.length > 1) {
+    return resolveBiYongOrSheHaiInitial(tianPan, siKe, dayGan, keCandidates);
+  }
+
+  return '';
+}
+
+function getYaoKeCandidates(siKe, dayGan) {
+  const shangShenCandidates = dedupeCandidatesByBranch([
+    overcomes(siKe?.second?.zhi, dayGan) ? { index: 2, zhi: siKe.second.zhi, kind: 'yaoke' } : null,
+    overcomes(siKe?.third?.zhi, dayGan) ? { index: 3, zhi: siKe.third.zhi, kind: 'yaoke' } : null,
+    overcomes(siKe?.fourth?.zhi, dayGan) ? { index: 4, zhi: siKe.fourth.zhi, kind: 'yaoke' } : null
+  ].filter(Boolean));
+
+  if (shangShenCandidates.length > 0) {
+    return shangShenCandidates;
+  }
+
+  return dedupeCandidatesByBranch([
+    overcomes(dayGan, siKe?.second?.zhi) ? { index: 2, zhi: siKe.second.zhi, kind: 'dayke' } : null,
+    overcomes(dayGan, siKe?.third?.zhi) ? { index: 3, zhi: siKe.third.zhi, kind: 'dayke' } : null,
+    overcomes(dayGan, siKe?.fourth?.zhi) ? { index: 4, zhi: siKe.fourth.zhi, kind: 'dayke' } : null
+  ].filter(Boolean));
+}
+
+function resolveYaoKeInitial(tianPan, siKe, dayGan) {
+  const yaoKeCandidates = getYaoKeCandidates(siKe, dayGan);
+
+  if (yaoKeCandidates.length === 0) {
+    return '';
+  }
+
+  if (yaoKeCandidates.length === 1) {
+    return yaoKeCandidates[0].zhi;
+  }
+
+  return resolveBiYongOrSheHaiInitial(tianPan, siKe, dayGan, yaoKeCandidates);
 }
 
 function buildSanChuanFromInitial(chuChuan, dayGan, dayZhi, tianPan) {
@@ -716,59 +1015,6 @@ function buildSanChuanFromInitial(chuChuan, dayGan, dayZhi, tianPan) {
   }
 
   return createSanChuanResult([chuChuan, zhongChuan, moChuan], dayGan + dayZhi);
-}
-
-function analyzeSanChuanContext(siKe, dayGan) {
-  const kes = [siKe.first, siKe.second, siKe.third, siKe.fourth];
-  const zeis = [];
-  const kesMatches = [];
-  const heavenBranches = kes.map((ke) => ke.zhi);
-  const yaoKes = [];
-  const gaoKes = [];
-
-  kes.forEach((ke, index) => {
-    if (overcomes(ke.gan, ke.zhi)) {
-      zeis.push({ ...ke, index });
-    }
-    if (overcomes(ke.zhi, ke.gan)) {
-      kesMatches.push({ ...ke, index });
-    }
-  });
-
-  heavenBranches.forEach((zhi, index) => {
-    if (overcomes(dayGan, zhi)) {
-      yaoKes.push({ zhi, index });
-    }
-    if (overcomes(zhi, dayGan)) {
-      gaoKes.push({ zhi, index });
-    }
-  });
-
-  return {
-    kes,
-    zeis,
-    kesMatches,
-    heavenBranches,
-    yaoKes,
-    gaoKes
-  };
-}
-
-function tryReferenceInspiredBiYong(context, siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan) {
-  // 对照 GitHub 参考实现 kinliuren，补足当前工程在多贼克场景下的两类常见误判。
-  if (!YANG_DAY_GAN.has(dayGan) || context.zeis.length < 2 || !hasSameWuXing(dayGan, hourGan)) {
-    return null;
-  }
-
-  if (context.kesMatches.length === 1) {
-    return buildSanChuanFromInitial(siKe.fourth.zhi, dayGan, dayZhi, tianPan);
-  }
-
-  if (context.kesMatches.length === 0 && !hasSameWuXing(hourGan, hourZhi)) {
-    return buildSanChuanFromInitial(siKe.fourth.zhi, dayGan, dayZhi, tianPan);
-  }
-
-  return null;
 }
 
 function getMaoXingSanChuan(siKe, dayGan, dayZhi, tianPan) {
@@ -798,6 +1044,70 @@ function getMaoXingSanChuan(siKe, dayGan, dayZhi, tianPan) {
   return createSanChuanResult([chu, zhong, mo], dayGanZhi);
 }
 
+function getBieZeSanChuan(siKe, dayGan, dayZhi, tianPan) {
+  const dayGanZhi = dayGan + dayZhi;
+  const ganShang = siKe?.first?.zhi;
+
+  if (!ganShang) {
+    throw new Error(`别责课缺少干上神: ${dayGanZhi}`);
+  }
+
+  const chu = YANG_DAY_GAN.has(dayGan)
+    ? getGanHeTopBranch(dayGan, tianPan)
+    : getAheadSanHeBranch(dayZhi);
+
+  if (!chu) {
+    throw new Error(`别责课无法确定初传: ${dayGanZhi}`);
+  }
+
+  return createSanChuanResult([chu, ganShang, ganShang], dayGanZhi);
+}
+
+function getBaZhuanSanChuan(siKe, dayGan, dayZhi) {
+  const dayGanZhi = dayGan + dayZhi;
+  const ganShang = siKe?.first?.zhi;
+  const zhiYin = siKe?.fourth?.zhi;
+
+  if (!ganShang || !zhiYin) {
+    throw new Error(`八专课缺少干上神或支阴神: ${dayGanZhi}`);
+  }
+
+  const chu = YANG_DAY_GAN.has(dayGan)
+    ? getForwardThreeBranch(ganShang)
+    : getBackwardThreeBranch(zhiYin);
+
+  if (!chu) {
+    throw new Error(`八专课无法确定初传: ${dayGanZhi}`);
+  }
+
+  return createSanChuanResult([chu, ganShang, ganShang], dayGanZhi);
+}
+
+function getDayYiMa(dayZhi) {
+  const dayZhiIdx = getZhiIdx(dayZhi);
+  if (dayZhiIdx === -1) {
+    throw new Error(`无法计算驿马: ${dayZhi}`);
+  }
+  return SHEN_SHA.yima[dayZhiIdx] || '';
+}
+
+function getFanYinSanChuan(siKe, dayGan, dayZhi, tianPan) {
+  const zeikeInitial = resolveZeiKeInitial(tianPan, siKe, dayGan);
+  if (zeikeInitial) {
+    return buildSanChuanFromInitial(zeikeInitial, dayGan, dayZhi, tianPan);
+  }
+
+  const chu = getDayYiMa(dayZhi);
+  const zhong = siKe?.third?.zhi;
+  const mo = siKe?.first?.zhi;
+
+  if (!chu || !zhong || !mo) {
+    throw new Error(`返吟无亲取传失败: ${dayGan}${dayZhi}`);
+  }
+
+  return createSanChuanResult([chu, zhong, mo], dayGan + dayZhi);
+}
+
 function getFuYinFaYong(siKe, dayGan) {
   const ganShang = siKe?.first?.zhi;
   const zhiShang = siKe?.third?.zhi;
@@ -806,15 +1116,7 @@ function getFuYinFaYong(siKe, dayGan) {
     throw new Error('伏吟局缺少干上或支上信息');
   }
 
-  const hasKe = overcomes(dayGan, ganShang) || overcomes(ganShang, dayGan);
-  if (hasKe) {
-    return {
-      chu: ganShang,
-      source: 'gan'
-    };
-  }
-
-  if (YANG_DAY_GAN.has(dayGan)) {
+  if (YANG_DAY_GAN.has(dayGan) || dayGan === '乙' || dayGan === '癸') {
     return {
       chu: ganShang,
       source: 'gan'
@@ -849,7 +1151,7 @@ function getFuYinSanChuan(siKe, dayGan, dayZhi) {
   }
 
   let mo = '';
-  if (isFuYinSelfXing(zhong)) {
+  if (isFuYinSelfXing(zhong) || getFuYinXing(zhong) === chu) {
     mo = getLiuChong(zhong);
   } else {
     mo = getFuYinXing(zhong);
@@ -862,7 +1164,7 @@ function getFuYinSanChuan(siKe, dayGan, dayZhi) {
   return createSanChuanResult([chu, zhong, mo], dayGanZhi);
 }
 
-function getSanChuan(siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan) {
+function getSanChuan(siKe, dayGan, dayZhi, tianPan) {
   if (isFuYinJu(tianPan)) {
     try {
       return getFuYinSanChuan(siKe, dayGan, dayZhi);
@@ -871,110 +1173,53 @@ function getSanChuan(siKe, dayGan, dayZhi, hourGan, hourZhi, tianPan) {
     }
   }
 
-  const context = analyzeSanChuanContext(siKe, dayGan);
-  let chuChuan = '';
-  let candidates = [];
-  if (context.zeis.length > 0) {
-    candidates = context.zeis;
-  } else if (context.kesMatches.length > 0) {
-    candidates = context.kesMatches;
-  }
-
-  if (candidates.length === 1) {
-    chuChuan = candidates[0].zhi;
-  } else if (candidates.length > 1) {
+  if (isFanYinJu(tianPan)) {
     try {
-      const referenceInspiredSanChuan = tryReferenceInspiredBiYong(
-        context,
-        siKe,
-        dayGan,
-        dayZhi,
-        hourGan,
-        hourZhi,
-        tianPan
-      );
-
-      if (referenceInspiredSanChuan) {
-        return referenceInspiredSanChuan;
-      }
+      return getFanYinSanChuan(siKe, dayGan, dayZhi, tianPan);
     } catch (error) {
-      console.warn('[DaLiuRen] 参考修正规则未能命中，继续走原有涉害逻辑:', error);
-    }
-
-    // 多贼克并见时，走简化涉害评分：
-    // 统计该支在 12 支序列中与其他支形成生克冲突的次数（克出/受克）。
-    // 注意：这是工程化近似，并非古法全量推演。
-    const calculateSheHaiDepth = (branch) => {
-      const zhiIdx = getZhiIdx(branch);
-      let depth = 0;
-      for (let i = 1; i < 12; i++) {
-        const nextIdx = (zhiIdx + i) % 12;
-        const nextZhi = ZHI[nextIdx];
-        // 克出与受克都计入涉害深度
-        if (overcomes(branch, nextZhi) || overcomes(nextZhi, branch)) {
-          depth += 1;
-        }
-      }
-      return depth;
-    };
-    
-    // Calculate She Hai depth for each candidate
-    const candidatesWithDepth = candidates.map(c => ({
-      ...c,
-      sheHaiDepth: calculateSheHaiDepth(c.zhi)
-    }));
-    
-    // Find maximum depth
-    const maxDepth = Math.max(...candidatesWithDepth.map(c => c.sheHaiDepth));
-    const deepest = candidatesWithDepth.filter(c => c.sheHaiDepth === maxDepth);
-    
-    if (deepest.length === 1) {
-      // One has deeper She Hai, use it
-      chuChuan = deepest[0].zhi;
-    } else {
-      // Multiple with same depth - use Bi Yong (Yin/Yang matching)
-      const dayYang = YANG_DAY_GAN.has(dayGan);
-      const matches = deepest.filter(c => {
-        const zhiYang = YANG_ZHI.has(c.zhi);
-        return dayYang === zhiYang;
-      });
-      
-      if (matches.length > 0) {
-        chuChuan = matches[0].zhi;
-      } else {
-        // No Yin/Yang match, use Meng-Zhong-Ji priority
-        // Meng (孟): 寅申巳亥 (positions 2,8,5,11)
-        // Zhong (仲): 子午卯酉 (positions 0,6,3,9)  
-        // Ji (季): 辰戌丑未 (positions 4,10,1,7)
-        const getMengZhongJi = (zhi) => {
-          const idx = getZhiIdx(zhi);
-          if ([2, 8, 5, 11].includes(idx)) return 0; // Meng
-          if ([0, 6, 3, 9].includes(idx)) return 1; // Zhong
-          return 2; // Ji
-        };
-        
-        // Sort by Meng < Zhong < Ji priority
-        deepest.sort((a, b) => getMengZhongJi(a.zhi) - getMengZhongJi(b.zhi));
-        chuChuan = deepest[0].zhi;
-      }
-    }
-  } else {
-    // No Zei and No Ke -> Yao Ke (Remote Overcoming)
-    if (context.yaoKes.length > 0) {
-      chuChuan = context.yaoKes[0].zhi;
-    } else if (context.gaoKes.length > 0) {
-      chuChuan = context.gaoKes[0].zhi;
-    } else {
-      try {
-        return getMaoXingSanChuan(siKe, dayGan, dayZhi, tianPan);
-      } catch (error) {
-        console.warn('[DaLiuRen] 昴星法取传失败，回退到一课上神:', error);
-      }
-      chuChuan = siKe.first.zhi;
+      console.error('[DaLiuRen] 返吟局取三传失败，回退到常规取传逻辑:', error);
     }
   }
 
-  return buildSanChuanFromInitial(chuChuan, dayGan, dayZhi, tianPan);
+  try {
+    const zeiKeInitial = resolveZeiKeInitial(tianPan, siKe, dayGan);
+    if (zeiKeInitial) {
+      return buildSanChuanFromInitial(zeiKeInitial, dayGan, dayZhi, tianPan);
+    }
+  } catch (error) {
+    console.warn('[DaLiuRen] 贼克/比用/涉害取传失败，继续检查后续宗门:', error);
+  }
+
+  try {
+    if (isBaZhuanKe(siKe)) {
+      return getBaZhuanSanChuan(siKe, dayGan, dayZhi);
+    }
+  } catch (error) {
+    console.warn('[DaLiuRen] 八专课取传失败，继续检查后续宗门:', error);
+  }
+
+  try {
+    const yaoKeInitial = resolveYaoKeInitial(tianPan, siKe, dayGan);
+    if (yaoKeInitial) {
+      return buildSanChuanFromInitial(yaoKeInitial, dayGan, dayZhi, tianPan);
+    }
+  } catch (error) {
+    console.warn('[DaLiuRen] 遥克取传失败，继续检查无克类课式:', error);
+  }
+
+  try {
+    if (isSiKeQuan(siKe)) {
+      return getMaoXingSanChuan(siKe, dayGan, dayZhi, tianPan);
+    }
+
+    if (isBieZeKe(siKe) || !isBaZhuanKe(siKe)) {
+      return getBieZeSanChuan(siKe, dayGan, dayZhi, tianPan);
+    }
+  } catch (error) {
+    console.warn('[DaLiuRen] 无克类课式取传失败，回退到一课上神:', error);
+  }
+
+  return buildSanChuanFromInitial(siKe?.first?.zhi || '', dayGan, dayZhi, tianPan);
 }
 
 function getDunGan(dayGan, branch, dayGanZhi) {
