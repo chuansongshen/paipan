@@ -1,433 +1,795 @@
-import { Lunar, Solar } from 'lunar-javascript';
-import { JIE_QI_JU, YANG_DUN_JIE_QI, STARS, GATES, GODS, BRANCH_TO_PALACE } from './constants.js';
+import { Solar } from 'lunar-javascript';
+import { BRANCH_TO_PALACE, JIE_QI_JU, YANG_DUN_JIE_QI } from './constants.js';
 
-// Helper to get GanZhi index (0-59)
-const getGanZhiIndex = (ganZhi) => {
-  const GANS = "甲乙丙丁戊己庚辛壬癸";
-  const ZHIS = "子丑寅卯辰巳午未申酉戌亥";
-  const gan = ganZhi[0];
-  const zhi = ganZhi[1];
-  for (let i = 0; i < 60; i++) {
-    if (GANS[i % 10] === gan && ZHIS[i % 12] === zhi) return i;
+const GANS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+const ZHIS = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const PALACE_NUMS = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+const PALACE_NAME_BY_NUM = {
+  '一': '坎',
+  '二': '坤',
+  '三': '震',
+  '四': '巽',
+  '五': '中',
+  '六': '乾',
+  '七': '兑',
+  '八': '艮',
+  '九': '离'
+};
+const PALACE_ID_BY_NAME = {
+  '坎': 1,
+  '坤': 2,
+  '震': 3,
+  '巽': 4,
+  '中': 5,
+  '乾': 6,
+  '兑': 7,
+  '兌': 7,
+  '艮': 8,
+  '离': 9,
+  '離': 9
+};
+
+const JIE_QI_CYCLE = [
+  '春分', '清明', '谷雨', '立夏', '小满', '芒种',
+  '夏至', '小暑', '大暑', '立秋', '处暑', '白露',
+  '秋分', '寒露', '霜降', '立冬', '小雪', '大雪',
+  '冬至', '小寒', '大寒', '立春', '雨水', '惊蛰'
+];
+
+const YANG_DUN_SET = new Set(YANG_DUN_JIE_QI);
+const METHOD_LABEL = {
+  chaibu: '拆补',
+  zhirun: '置润'
+};
+
+const CLOCKWISE_EIGHT_PALACES = ['坎', '艮', '震', '巽', '离', '坤', '兑', '乾'];
+const EARTH_STEMS = {
+  阳: ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'],
+  阴: ['戊', '乙', '丙', '丁', '癸', '壬', '辛', '庚', '己']
+};
+
+const XUN_HEADS = ['甲子', '甲戌', '甲申', '甲午', '甲辰', '甲寅'];
+const XUN_HEAD_HIDE_STEM = {
+  '甲子': '戊',
+  '甲戌': '己',
+  '甲申': '庚',
+  '甲午': '辛',
+  '甲辰': '壬',
+  '甲寅': '癸'
+};
+
+const YUAN_LABELS = ['上元', '中元', '下元'];
+const YIN_YANG_TYPE_LABEL = {
+  阳: '阳遁',
+  阴: '阴遁'
+};
+
+const ZHIFU_PAI = {
+  阳: {
+    '一': '九八七一二三四五六',
+    '二': '一九八二三四五六七',
+    '三': '二一九三四五六七八',
+    '四': '三二一四五六七八九',
+    '五': '四三二五六七八九一',
+    '六': '五四三六七八九一二',
+    '七': '六五四七八九一二三',
+    '八': '七六五八九一二三四',
+    '九': '八七六九一二三四五'
+  },
+  阴: {
+    '九': '一二三九八七六五四',
+    '八': '九一二八七六五四三',
+    '七': '八九一七六五四三二',
+    '六': '七八九六五四三二一',
+    '五': '六七八五四三二一九',
+    '四': '五六七四三二一九八',
+    '三': '四五六三二一九八七',
+    '二': '三四五二一九八七六',
+    '一': '二三四一九八七六五'
   }
-  return 0;
 };
 
-const resolveJieQiName = (lunar, method) => {
-  // 拆补：严格按节气交接时刻；置润：按交节日处理（同一天内可提前切换节气）
-  const useDayBoundary = method === 'zhirun';
-  const prevJieQi = lunar.getPrevJieQi(useDayBoundary);
-  const jieQiName = prevJieQi?.getName?.();
-  if (!jieQiName) {
-    console.warn('[Qimen] 无法获取节气名称，回退到严格交节时刻');
-    return lunar.getPrevJieQi(false)?.getName?.() || '';
+const ZHISHI_MAPPING = ['休', '死', '伤', '杜', '中', '开', '惊', '生', '景'];
+const ZHIFU_STAR_MAPPING = ['蓬', '芮', '冲', '辅', '禽', '心', '柱', '任', '英'];
+
+const STAR_ROTATE_BASE = ['蓬', '任', '冲', '辅', '英', '禽', '柱', '心'];
+const DOOR_ROTATE_BASE = ['休', '生', '伤', '杜', '景', '死', '惊', '开'];
+const GOD_ROTATE_BASE = {
+  阳: ['值符', '腾蛇', '太阴', '六合', '勾陈', '朱雀', '九地', '九天'],
+  阴: ['值符', '腾蛇', '太阴', '六合', '白虎', '玄武', '九地', '九天']
+};
+
+const FULL_STAR_NAME = {
+  '蓬': '天蓬',
+  '芮': '天芮',
+  '冲': '天冲',
+  '輔': '天辅',
+  '辅': '天辅',
+  '英': '天英',
+  '禽': '天禽',
+  '心': '天心',
+  '柱': '天柱',
+  '任': '天任'
+};
+const FULL_DOOR_NAME = {
+  '休': '休门',
+  '生': '生门',
+  '伤': '伤门',
+  '傷': '伤门',
+  '杜': '杜门',
+  '景': '景门',
+  '死': '死门',
+  '惊': '惊门',
+  '驚': '惊门',
+  '开': '开门',
+  '開': '开门'
+};
+
+const STAR_HOME_PALACE = {
+  '蓬': '坎',
+  '芮': '坤',
+  '冲': '震',
+  '辅': '巽',
+  '輔': '巽',
+  '禽': '中',
+  '心': '乾',
+  '柱': '兑',
+  '任': '艮',
+  '英': '离'
+};
+
+const BRANCH_HORSE_MAP = {
+  '申': '寅',
+  '子': '寅',
+  '辰': '寅',
+  '寅': '申',
+  '午': '申',
+  '戌': '申',
+  '亥': '巳',
+  '卯': '巳',
+  '未': '巳',
+  '巳': '亥',
+  '酉': '亥',
+  '丑': '亥'
+};
+
+const AN_GAN_SEQUENCE = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
+
+const SIXTY_JIAZI = buildSixtyJiaZi();
+
+function buildSixtyJiaZi() {
+  const result = [];
+  for (let i = 0; i < 60; i += 1) {
+    result.push(`${GANS[i % 10]}${ZHIS[i % 12]}`);
   }
-  return jieQiName;
-};
+  return result;
+}
 
-const getYuanByFuTou = (dayIdx) => {
-  const fuTouIdx = dayIdx - (dayIdx % 5);
-  const fuTouZhiIdx = fuTouIdx % 12;
-  if ([0, 6, 3, 9].includes(fuTouZhiIdx)) return 0;
-  if ([2, 8, 5, 11].includes(fuTouZhiIdx)) return 1;
-  return 2;
-};
+function getGanZhiIndex(ganZhi) {
+  const index = SIXTY_JIAZI.indexOf(ganZhi);
+  if (index === -1) {
+    throw new Error(`无法定位干支序号: ${ganZhi}`);
+  }
+  return index;
+}
 
-export const calculateJu = (date, method = 'chaibu') => {
-  const solar = Solar.fromDate(date);
-  const lunar = solar.getLunar();
+function rotateList(list, startValue) {
+  const startIndex = list.indexOf(startValue);
+  if (startIndex === -1) {
+    throw new Error(`无法轮转列表，未找到起点: ${startValue}`);
+  }
+  return [...list.slice(startIndex), ...list.slice(0, startIndex)];
+}
 
-  const effectiveMethod = method === 'zhirun' ? 'zhirun' : 'chaibu';
-  if (method !== effectiveMethod) {
+function reverseRotateList(list, startValue) {
+  return rotateList([...list].reverse(), startValue);
+}
+
+function getPalaceNumChar(juNum) {
+  const value = PALACE_NUMS[juNum - 1];
+  if (!value) {
+    throw new Error(`无效局数: ${juNum}`);
+  }
+  return value;
+}
+
+function normalizeMethod(method) {
+  if (method === 'zhirun') {
+    return 'zhirun';
+  }
+  if (method !== 'chaibu') {
     console.warn(`[Qimen] 未知定局方式 "${method}"，已回退为拆补法`);
   }
+  return 'chaibu';
+}
 
-  // 1. Get Solar Term (Jie Qi)
-  const jieQiName = resolveJieQiName(lunar, effectiveMethod);
-
-  // 2. Determine Yuan (Upper/Middle/Lower)
-  const dayGanZhi = lunar.getDayInGanZhiExact?.() || lunar.getDayInGanZhi();
-  const dayIdx = getGanZhiIndex(dayGanZhi);
-  const yuan = getYuanByFuTou(dayIdx); // 0:上元 1:中元 2:下元
-
-  // 3. Get Ju Number
-  const juInfo = JIE_QI_JU[jieQiName];
-  if (!juInfo) {
-    console.error(`[Qimen] 未知节气 "${jieQiName}"，无法定局`);
-    return { error: `Unknown Jie Qi: ${jieQiName || 'N/A'}` };
-  }
-  
-  const juNum = juInfo[yuan];
-  const isYang = YANG_DUN_JIE_QI.includes(jieQiName);
-  
-  return {
-    jieQi: jieQiName,
-    dayGanZhi,
-    yuan: ['上元', '中元', '下元'][yuan],
-    juNum,
-    type: isYang ? '阳遁' : '阴遁',
-    isYang
+function normalizeJieQiName(name) {
+  const map = {
+    '穀雨': '谷雨',
+    '小滿': '小满',
+    '處暑': '处暑',
+    '驚蟄': '惊蛰',
+    '兌': '兑',
+    '離': '离'
   };
-};
+  return map[name] || name || '';
+}
 
-// Layout Logic (Pai Pan)
-export const getPaiPan = (date, method = 'chaibu') => {
-  const ju = calculateJu(date, method);
-  if (ju.error) return ju;
-  
+function getCurrentJieQiInfo(date) {
   const solar = Solar.fromDate(date);
   const lunar = solar.getLunar();
-  // 奇门四柱采用节气边界（立春/节令）精确口径
-  const yearGanZhi = lunar.getYearInGanZhiExact?.() || lunar.getYearInGanZhi();
-  const monthGanZhi = lunar.getMonthInGanZhiExact?.() || lunar.getMonthInGanZhi();
+  const currentJieQi = lunar.getPrevJieQi(false);
+  const jieQiName = normalizeJieQiName(currentJieQi?.getName?.());
+  if (!jieQiName) {
+    throw new Error('无法获取当前节气');
+  }
+  return {
+    solar,
+    lunar,
+    jieQiName,
+    jieQiSolar: currentJieQi.getSolar()
+  };
+}
+
+function solarToDate(solar) {
+  if (!solar) {
+    throw new Error('缺少节气时刻');
+  }
+  const year = solar.getYear?.();
+  const month = solar.getMonth?.();
+  const day = solar.getDay?.();
+  const hour = solar.getHour?.() || 0;
+  const minute = solar.getMinute?.() || 0;
+  const second = solar.getSecond?.() || 0;
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
+function getPrevJieQiName(jieQiName) {
+  const index = JIE_QI_CYCLE.indexOf(jieQiName);
+  if (index === -1) {
+    throw new Error(`未知节气: ${jieQiName}`);
+  }
+  return JIE_QI_CYCLE[(index - 1 + JIE_QI_CYCLE.length) % JIE_QI_CYCLE.length];
+}
+
+function getNextJieQiName(jieQiName) {
+  const index = JIE_QI_CYCLE.indexOf(jieQiName);
+  if (index === -1) {
+    throw new Error(`未知节气: ${jieQiName}`);
+  }
+  return JIE_QI_CYCLE[(index + 1) % JIE_QI_CYCLE.length];
+}
+
+function getYuanIndex(dayGanZhi) {
+  return Math.floor(getGanZhiIndex(dayGanZhi) / 5) % 3;
+}
+
+function getYinYangByJieQi(jieQiName) {
+  return YANG_DUN_SET.has(jieQiName) ? '阳' : '阴';
+}
+
+function getJuNum(jieQiName, yuanIndex) {
+  const juInfo = JIE_QI_JU[jieQiName];
+  if (!juInfo) {
+    throw new Error(`未知节气局数配置: ${jieQiName}`);
+  }
+  const juNum = juInfo[yuanIndex];
+  if (!juNum) {
+    throw new Error(`节气局数配置缺失: ${jieQiName} yuanIndex=${yuanIndex}`);
+  }
+  return juNum;
+}
+
+function createJuDescriptor({ method, currentJieQi, effectiveJieQi, yuanIndex, yinYang, juNum, rule }) {
+  return {
+    method,
+    jieQi: currentJieQi,
+    effectiveJieQi,
+    yuanIndex,
+    yuan: YUAN_LABELS[yuanIndex],
+    juNum,
+    type: YIN_YANG_TYPE_LABEL[yinYang],
+    isYang: yinYang === '阳',
+    rule
+  };
+}
+
+function getHourXunHead(hourGanZhi) {
+  const index = getGanZhiIndex(hourGanZhi);
+  return SIXTY_JIAZI[Math.floor(index / 10) * 10];
+}
+
+function getHiddenStemByXunHead(xunHead) {
+  const stem = XUN_HEAD_HIDE_STEM[xunHead];
+  if (!stem) {
+    throw new Error(`未知旬首遁干: ${xunHead}`);
+  }
+  return stem;
+}
+
+function getLunarMonthLabel(lunar) {
+  const monthChinese = lunar.getMonthInChinese?.() || '';
+  if (!monthChinese) {
+    return '';
+  }
+  return `${monthChinese}月`;
+}
+
+function getZhiRunRawContext(date) {
+  const { solar, lunar, jieQiName, jieQiSolar } = getCurrentJieQiInfo(date);
   const dayGanZhi = lunar.getDayInGanZhiExact?.() || lunar.getDayInGanZhi();
   const hourGanZhi = lunar.getTimeInGanZhi();
-  
-  const dayXunKong = lunar.getDayXunKong();
-  const hourXunKong = lunar.getTimeXunKong();
-  
-  const hourStem = hourGanZhi[0];
-  const hourBranch = hourGanZhi[1];
-  
-  // 1. Di Pan (Earth Plate)
-  // Sequence: Wu, Ji, Geng, Xin, Ren, Gui, Ding, Bing, Yi (Yang Dun)
-  // Sequence: Wu, Ji, Geng, Xin, Ren, Gui, Yi, Bing, Ding (Yin Dun) -> No.
-  // Standard San Qi Liu Yi sequence:
-  // Yang Dun: Wu, Ji, Geng, Xin, Ren, Gui, Ding, Bing, Yi. (Forward)
-  // Yin Dun: Wu, Ji, Geng, Xin, Ren, Gui, Ding, Bing, Yi. (Reverse? No)
-  // Actually, the sequence of stems on the path 1-9 or 9-1.
-  // Yang Dun: 
-  //   Wu -> Palace 1 (if Ju 1) -> No.
-  //   The "Pai" sequence is fixed: Wu Ji Geng Xin Ren Gui Ding Bing Yi.
-  //   Yang Dun: Place them in order 1, 2, 3... starting from Ju Number.
-  //   Yin Dun: Place them in order 9, 8, 7... starting from Ju Number.
-  
-  const STEMS_ORDER = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
-  
-  const diPan = {}; // Palace Index -> Stem
-  
-  let currentPalace = ju.juNum;
-  
-  STEMS_ORDER.forEach((stem) => {
-    diPan[currentPalace] = stem;
-    if (ju.isYang) {
-      currentPalace++;
-      if (currentPalace > 9) currentPalace = 1;
-    } else {
-      currentPalace--;
-      if (currentPalace < 1) currentPalace = 9;
-    }
-  });
-  
-  // 2. Find Xun Shou (Leader of the 10-hour period)
-  // Hour GanZhi.
-  // Find the Xun (Wave).
-  // Jia Zi (Wu), Jia Xu (Ji), Jia Shen (Geng), Jia Wu (Xin), Jia Chen (Ren), Jia Yin (Gui).
-  // Formula: (HourStemIdx - HourBranchIdx) ...
-  // Or just look up.
-  const hourIdx = getGanZhiIndex(hourGanZhi);
-  const xunIdx = hourIdx - (hourIdx % 10); // The index of the Jia day/hour
-  // Map Xun Index to Leader Stem (The "Hidden" Stem)
-  // 0 (Jia Zi) -> Wu
-  // 10 (Jia Xu) -> Ji
-  // 20 (Jia Shen) -> Geng
-  // 30 (Jia Wu) -> Xin
-  // 40 (Jia Chen) -> Ren
-  // 50 (Jia Yin) -> Gui
-  const XUN_LEADERS = {
-    0: '戊', 10: '己', 20: '庚', 30: '辛', 40: '壬', 50: '癸'
-  };
-  const XUN_NAMES = {
-    0: '甲子', 10: '甲戌', 20: '甲申', 30: '甲午', 40: '甲辰', 50: '甲寅'
-  };
-  const leaderStem = XUN_LEADERS[xunIdx % 60];
-  const xunName = XUN_NAMES[xunIdx % 60];
-  
-  // 3. Find Zhi Fu (Star) and Zhi Shi (Gate)
-  // Look at Di Pan. Where is the Leader Stem?
-  let leaderPalace = 0;
-  Object.entries(diPan).forEach(([p, s]) => {
-    if (s === leaderStem) leaderPalace = parseInt(p);
-  });
-  
-  // If Leader is in 5 (Central), it moves to 2 (Kun) usually?
-  // Or uses the star of 5 (Tian Qin).
-  // Tian Qin usually resides in 5. If 5, it goes to 2.
-  // Let's track the original star of the leader palace.
-  // Actually, the Star at the Leader Palace position (in the original arrangement) is the Zhi Fu.
-  // Original Stars: 1:Peng, 2:Rui, 3:Chong, 4:Fu, 5:Qin, 6:Xin, 7:Zhu, 8:Ren, 9:Ying.
-  // If Leader Palace is 5, Zhi Fu is Tian Qin.
-  // If Leader Palace is 1, Zhi Fu is Tian Peng.
-  const originalStar = STARS[leaderPalace];
-  
-  // Zhi Shi (Gate) is the Gate at the Leader Palace.
-  // Original Gates: 1:Xiu, 2:Si, 3:Shang, 4:Du, 5:None, 6:Kai, 7:Jing, 8:Sheng, 9:Jing.
-  // If 5, usually use Gate of 2 (Si Men)? Or 8 (Sheng)?
-  // Standard: 5 uses 2's Gate (Si Men).
-  const originalGate = GATES[leaderPalace === 5 ? 2 : leaderPalace];
-  
-  // 4. Move Zhi Fu (Star) to Hour Stem position
-  // Where is the Hour Stem on the Di Pan?
-  // Note: If Hour Stem is Jia (Hidden), use the Leader Stem.
-  let targetStem = hourStem;
-  if (hourStem === '甲') targetStem = leaderStem;
-  
-  let hourPalace = 0;
-  Object.entries(diPan).forEach(([p, s]) => {
-    if (s === targetStem) hourPalace = parseInt(p);
-  });
-  
-  // Tian Pan Layout
-  // The Stars rotate. Zhi Fu (Original Star) goes to Hour Palace.
-  // Determine the rotation offset.
-  // Sequence of Stars is fixed in the ring:
-  // Peng(1) -> Ren(8) -> Chong(3) -> Fu(4) -> Ying(9) -> Rui(2) -> Zhu(7) -> Xin(6) -> Peng(1) (Clockwise)
-  // Wait, standard path is 1->8->3->4->9->2->7->6.
-  // We need to map the "Original Palace" of the star to the "Current Palace".
-  // Offset = HourPalace - LeaderPalace? No, it's a ring rotation.
-  
-  const STAR_RING = [1, 8, 3, 4, 9, 2, 7, 6]; // Palace indices in clockwise order
-  // Find index of LeaderPalace (if 5, treat as 2) in the ring.
-  const startRingIdx = STAR_RING.indexOf(leaderPalace === 5 ? 2 : leaderPalace);
-  const endRingIdx = STAR_RING.indexOf(hourPalace === 5 ? 2 : hourPalace);
-  
-  // Calculate shift
-  let shift = endRingIdx - startRingIdx;
-  
-  const tianPan = {}; // Palace -> Star
-  
-  STAR_RING.forEach((pIdx, i) => {
-    let newIdx = (i + shift) % 8;
-    if (newIdx < 0) newIdx += 8;
-    const targetP = STAR_RING[newIdx];
-    // The star originally at pIdx moves to targetP
-    // Star at pIdx is STARS[pIdx]
-    // Wait. "Zhi Fu goes to Hour Palace".
-    // So Star(LeaderPalace) is at HourPalace.
-    // So Star(pIdx) is at ...?
-    // Let's say Leader is at Ring[0]. It moves to Ring[k].
-    // Then Ring[1] moves to Ring[k+1].
-    // So Star at Ring[i] moves to Ring[i+shift].
-    // targetP is the destination.
-    // tianPan[targetP] = STARS[pIdx];
-    
-    // Special case: Tian Qin (5) moves with Tian Rui (2).
-    let starName = STARS[pIdx];
-    if (pIdx === 2) starName = STARS[2] + (leaderPalace === 5 ? "" : ""); // Usually Rui carries Qin?
-    // Actually Tian Qin is usually attached to Tian Rui.
-    // So if pIdx is 2, we show "Tian Rui / Tian Qin".
-    if (pIdx === 2) starName = "天芮/天禽";
-    
-    tianPan[targetP] = starName;
-  });
-  
-  // Central palace (5) usually has no star or is empty in Tian Pan?
-  // In Zhuan Pan, 5 is empty or has a "Ji" (sent) star?
-  // Usually displayed as empty or the Di Pan stem.
-  
-  // 5. Ren Pan (Gates)
-  // Zhi Shi (Gate) moves to ...?
-  // Zhi Shi moves to the palace corresponding to the Hour *Sequence*.
-  // Yang Dun: Zhi Shi moves forward from Leader Palace count.
-  // Yin Dun: Zhi Shi moves backward?
-  // Count from Xun Shou (Leader Time) to Current Hour.
-  // Xun Shou is at Leader Palace.
-  // Hour is X hours away from Xun Shou.
-  // Range: 0 to 9.
-  // Yang Dun: Palace = (LeaderPalace + HourDiff) % 9. (Skip 5? Or go through 9 palaces?)
-  // Standard: Go through 1-9. If 5, jump to 2? Or stay 5?
-  // Usually Zhi Shi follows the 1-9 path (Luo Shu).
-  // Let's calculate Hour Diff.
-  const hourDiff = hourIdx - xunIdx; // 0 to 9
-  
-  let gatePalace = leaderPalace;
-  if (ju.isYang) {
-    for (let i = 0; i < hourDiff; i++) {
-      gatePalace++;
-      if (gatePalace > 9) gatePalace = 1;
-    }
-  } else {
-    for (let i = 0; i < hourDiff; i++) {
-      gatePalace--;
-      if (gatePalace < 1) gatePalace = 9;
-    }
-  }
-  
-  // Now rotate the Gate Ring.
-  // Zhi Shi (Original Gate) goes to gatePalace.
-  // Gate Ring: 1, 8, 3, 4, 9, 2, 7, 6. (Same as stars)
-  const GATE_RING = [1, 8, 3, 4, 9, 2, 7, 6];
-  const startGateIdx = GATE_RING.indexOf(leaderPalace === 5 ? 2 : leaderPalace);
-  const endGateIdx = GATE_RING.indexOf(gatePalace === 5 ? 2 : gatePalace);
-  
-  const gateShift = endGateIdx - startGateIdx;
-  
-  const renPan = {};
-  GATE_RING.forEach((pIdx, i) => {
-    let newIdx = (i + gateShift) % 8;
-    if (newIdx < 0) newIdx += 8;
-    const targetP = GATE_RING[newIdx];
-    renPan[targetP] = GATES[pIdx];
-  });
-  
-  // 6. Shen Pan (Gods)
-  // Zhi Fu (God - The first one) goes to the *Tian Pan* Zhi Fu (Star) position.
-  // i.e. The Hour Palace.
-  // Yang Dun: Clockwise. Yin Dun: Counter-Clockwise.
-  // Ring: 1, 8, 3, 4, 9, 2, 7, 6.
-  
-  const shenPan = {};
-  const godStartIdx = STAR_RING.indexOf(hourPalace === 5 ? 2 : hourPalace);
-  
-  GODS.forEach((god, i) => {
-    // i=0 is Zhi Fu.
-    // Yang Dun: Place at godStartIdx + i
-    // Yin Dun: Place at godStartIdx - i
-    let idx;
-    if (ju.isYang) {
-      idx = (godStartIdx + i) % 8;
-    } else {
-      idx = (godStartIdx - i) % 8;
-    }
-    if (idx < 0) idx += 8;
-    
-    const targetP = STAR_RING[idx];
-    shenPan[targetP] = god;
-  });
-  
-  // 7. Tian Pan Stems (The stem carried by the star)
-  // The stem that was originally at the Star's position in the Di Pan moves with the Star.
-  // We need to know which stem is "under" the star in the Di Pan *before* it moved.
-  // The "Original Palace" of the star had a stem in the Di Pan.
-  // Wait. The Di Pan is fixed for the Ju.
-  // The Star takes the Di Pan stem from its *original home*?
-  // No, the Star takes the Di Pan stem from the *current Ju's Di Pan* at the Star's *current position*?
-  // No.
-  // "Pai Pan" rule:
-  // Tian Pan Stem at Palace X = Di Pan Stem at Palace Y, where Palace Y is where the Star came from.
-  // i.e. The Star carries the Stem.
-  // So if Tian Peng (from 1) moves to 9. The Stem at 1 (in Di Pan) moves to 9 (in Tian Pan).
-  
-  const tianPanStems = {};
-  STAR_RING.forEach((pIdx, i) => {
-    // pIdx is the Original Palace of the Star.
-    // Find where this Star is now.
-    // It is at targetP (calculated in step 4).
-    let newIdx = (i + shift) % 8;
-    if (newIdx < 0) newIdx += 8;
-    const targetP = STAR_RING[newIdx];
-    
-    // The stem to carry is the Di Pan stem at pIdx.
-    // Note: If pIdx is 5, it uses Di Pan stem at 5.
-    // But 5 is not in STAR_RING?
-    // STAR_RING uses 2 for 5?
-    // If pIdx is 2, it carries stem of 2.
-    // What about stem of 5?
-    // Tian Qin carries stem of 5.
-    // So at targetP (where Rui/Qin is), we have Stem(2) and Stem(5).
-    
-    const stem = diPan[pIdx];
-    tianPanStems[targetP] = stem;
-    
-    if (pIdx === 2) {
-      // Add stem of 5
-      tianPanStems[targetP] += "/" + diPan[5];
-    }
-  });
-  
-  // Calculate Ma Xing (Yi Ma) based on Hour Branch
-  // Shen-Zi-Chen -> Yin
-  // Yin-Wu-Xu -> Shen
-  // Hai-Mao-Wei -> Si
-  // Si-You-Chou -> Hai
-  const MA_XING_MAP = {
-    '申': '寅', '子': '寅', '辰': '寅',
-    '寅': '申', '午': '申', '戌': '申',
-    '亥': '巳', '卯': '巳', '未': '巳',
-    '巳': '亥', '酉': '亥', '丑': '亥'
-  };
-  const maXing = MA_XING_MAP[hourBranch];
-  const maXingPalace = BRANCH_TO_PALACE[maXing];
-  
-  // Calculate Kong Wang Palaces (Hour)
-  // hourXunKong is a string like "辰巳"
-  const kongWangPalaces = [];
-  if (hourXunKong) {
-    for (const char of hourXunKong) {
-      const p = BRANCH_TO_PALACE[char];
-      if (p && !kongWangPalaces.includes(p)) kongWangPalaces.push(p);
-    }
-  }
-
-  // Calculate An Gan (Dark Stem / 暗干)
-  // Method: 干加值使门（飞）
-  // 时干加值使门：时干落在值使门当前所在的宫位，其他天干按飞宫顺序排布
-  // 飞宫顺序：1-2-3-4-5-6-7-8-9（阳遁顺飞）或 9-8-7-6-5-4-3-2-1（阴遁逆飞）
-  
-  // 1. 确定时干（如果是甲，则用旬首遁甲）
-  let anGanStartStem = hourStem;
-  if (hourStem === '甲') anGanStartStem = leaderStem;
-  
-  // 2. 找到值使门在人盘（renPan）中当前所在的宫位
-  let zhiShiPalace = 0;
-  Object.entries(renPan).forEach(([p, gate]) => {
-    if (gate === originalGate) {
-      zhiShiPalace = parseInt(p);
-    }
-  });
-  // 如果没找到（值使门在中宫5），默认使用2宫
-  if (zhiShiPalace === 0) zhiShiPalace = 2;
-  
-  // 3. 起始宫位：时干落在值使门所在宫位
-  const anGanStartPalace = zhiShiPalace;
-  
-  // 4. 六仪三奇顺序
-  const STEMS_SEQ = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
-  
-  // 5. 找到时干在序列中的位置
-  const hourStemIdx = STEMS_SEQ.indexOf(anGanStartStem);
-  
-  const anGan = {};
-  
-  // 6. 从值使门宫位开始，时干排在此处，其他天干按飞宫顺序排布
-  for (let i = 0; i < 9; i++) {
-    // 天干：从时干开始，按六仪三奇顺序
-    const stemIdx = (hourStemIdx + i) % 9;
-    const stem = STEMS_SEQ[stemIdx];
-    
-    // 宫位：按飞宫顺序
-    let p;
-    if (ju.isYang) {
-      // 阳遁顺飞
-      p = (anGanStartPalace - 1 + i) % 9 + 1;
-    } else {
-      // 阴遁逆飞
-      let val = (anGanStartPalace - 1 - i) % 9;
-      if (val < 0) val += 9;
-      p = val + 1;
-    }
-    anGan[p] = stem;
-  }
+  const yuanIndex = getYuanIndex(dayGanZhi);
+  const nextJieQi = getNextJieQiName(jieQiName);
+  const prevJieQi = getPrevJieQiName(jieQiName);
+  const currentYinYang = getYinYangByJieQi(jieQiName);
+  const nextYinYang = getYinYangByJieQi(nextJieQi);
+  const diffMs = date.getTime() - solarToDate(jieQiSolar).getTime();
+  const distanceDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  const xunHead = getHourXunHead(hourGanZhi);
+  const hiddenStem = getHiddenStemByXunHead(xunHead);
+  const lunarMonth = getLunarMonthLabel(lunar);
+  const solarMonth = solar.getMonth();
+  const lunarDay = lunar.getDay();
 
   return {
-    ...ju,
-    yearGanZhi,
-    monthGanZhi,
-    dayGanZhi,
-    hourGanZhi,
-    dayXunKong,
-    hourXunKong,
-    maXing,
-    maXingPalace,
-    kongWangPalaces,
-    anGan,
-    xun: xunName, // Xun Leader Name (Jia ...)
-    zhiFuStar: originalStar,
-    zhiShiGate: originalGate,
-    diPan,
-    tianPan,
-    renPan,
-    shenPan,
-    tianPanStems
+    date,
+    solar,
+    lunar,
+    jieQiName,
+    nextJieQi,
+    prevJieQi,
+    yuanIndex,
+    hiddenStem,
+    xunHead,
+    distanceDays,
+    lunarMonth,
+    solarMonth,
+    lunarDay,
+    current: createJuDescriptor({
+      method: 'zhirun',
+      currentJieQi: jieQiName,
+      effectiveJieQi: jieQiName,
+      yuanIndex,
+      yinYang: currentYinYang,
+      juNum: getJuNum(jieQiName, yuanIndex),
+      rule: '当前排局'
+    }),
+    next: createJuDescriptor({
+      method: 'zhirun',
+      currentJieQi: jieQiName,
+      effectiveJieQi: nextJieQi,
+      yuanIndex,
+      yinYang: nextYinYang,
+      juNum: getJuNum(nextJieQi, yuanIndex),
+      rule: '超神接气正授排局'
+    }),
+    previous: createJuDescriptor({
+      method: 'zhirun',
+      currentJieQi: jieQiName,
+      effectiveJieQi: prevJieQi,
+      yuanIndex,
+      yinYang: currentYinYang,
+      juNum: getJuNum(prevJieQi, yuanIndex),
+      rule: '其他排局'
+    }),
+    hybrid: createJuDescriptor({
+      method: 'zhirun',
+      currentJieQi: jieQiName,
+      effectiveJieQi: jieQiName,
+      yuanIndex,
+      yinYang: nextYinYang,
+      juNum: getJuNum(jieQiName, yuanIndex),
+      rule: '其他排局1'
+    })
   };
+}
+
+function selectZhiRunJu(context) {
+  const { distanceDays: d, hiddenStem, lunarMonth, solarMonth, lunarDay, jieQiName } = context;
+  const isWuJi = ['戊', '己', '庚', '辛', '壬', '癸'].includes(hiddenStem);
+  const current = context.current;
+  const next = context.next;
+  const previous = context.previous;
+  const hybrid = context.hybrid;
+
+  if (d === 0) {
+    if (lunarMonth === '腊月') {
+      return hybrid;
+    }
+    if (lunarMonth === '冬月') {
+      return current;
+    }
+    return solarMonth > 9 ? next : current;
+  }
+
+  if (d > 1 && d <= 6) {
+    if (lunarMonth === '腊月') {
+      return hybrid;
+    }
+    if (lunarMonth === '冬月') {
+      return jieQiName === '冬至' ? current : previous;
+    }
+    if (solarMonth >= 9) {
+      if (lunarDay < 15) {
+        return hybrid;
+      }
+      return isWuJi ? current : previous;
+    }
+    if (lunarMonth === '正月') {
+      if (lunarDay < 10 && !isWuJi) {
+        return previous;
+      }
+      if (isWuJi) {
+        if (lunarDay < 20) {
+          return hybrid;
+        }
+        if (lunarDay > 20 && lunarDay <= 26) {
+          return previous;
+        }
+        return hybrid;
+      }
+    }
+    if (!['腊月', '冬月', '正月'].includes(lunarMonth) && lunarDay < 15) {
+      return current;
+    }
+    if (lunarDay >= 15) {
+      return hybrid;
+    }
+    return next;
+  }
+
+  if (d > 1 && d <= 9) {
+    if (lunarMonth === '腊月') {
+      return current;
+    }
+    if (lunarMonth === '冬月') {
+      return hybrid;
+    }
+    if (lunarMonth === '正月') {
+      return solarMonth <= 9 && lunarDay >= 15 ? hybrid : isWuJi ? hybrid : next;
+    }
+    if (solarMonth <= 6) {
+      if (lunarDay <= 10) {
+        return hybrid;
+      }
+      if (isWuJi) {
+        return lunarDay < 20 ? next : hybrid;
+      }
+      return current;
+    }
+    if (solarMonth <= 9) {
+      if (lunarDay < 15) {
+        return next;
+      }
+      return isWuJi || lunarDay >= 20 ? hybrid : current;
+    }
+    return next;
+  }
+
+  if (d > 1 && d <= 15) {
+    if (lunarMonth === '腊月') {
+      return hybrid;
+    }
+    if (lunarMonth === '冬月') {
+      return jieQiName !== '冬至' ? hybrid : d <= 12 ? hybrid : current;
+    }
+    if (solarMonth > 9) {
+      return hybrid;
+    }
+    if (lunarMonth === '正月') {
+      return current;
+    }
+    if (!['正月', '腊月', '冬月'].includes(lunarMonth)) {
+      return current;
+    }
+    return next;
+  }
+
+  if (d < 0) {
+    return next;
+  }
+
+  return current;
+}
+
+function calculateJuChaibu(date) {
+  const { lunar, jieQiName } = getCurrentJieQiInfo(date);
+  const dayGanZhi = lunar.getDayInGanZhiExact?.() || lunar.getDayInGanZhi();
+  const yuanIndex = getYuanIndex(dayGanZhi);
+  const yinYang = getYinYangByJieQi(jieQiName);
+  return createJuDescriptor({
+    method: 'chaibu',
+    currentJieQi: jieQiName,
+    effectiveJieQi: jieQiName,
+    yuanIndex,
+    yinYang,
+    juNum: getJuNum(jieQiName, yuanIndex),
+    rule: '拆补正授'
+  });
+}
+
+function calculateJuZhiRun(date) {
+  const context = getZhiRunRawContext(date);
+  return selectZhiRunJu(context);
+}
+
+export const calculateJu = (date, method = 'chaibu') => {
+  try {
+    const effectiveMethod = normalizeMethod(method);
+    return effectiveMethod === 'zhirun'
+      ? calculateJuZhiRun(date)
+      : calculateJuChaibu(date);
+  } catch (error) {
+    console.error('[Qimen] 定局失败:', error);
+    return {
+      error: error.message || '奇门定局失败'
+    };
+  }
+};
+
+function getSixJiaRoundKeys(juNum, yinYang) {
+  const juChar = getPalaceNumChar(juNum);
+  return yinYang === '阳'
+    ? rotateList(PALACE_NUMS, juChar).slice(0, 6)
+    : reverseRotateList(PALACE_NUMS, juChar).slice(0, 6);
+}
+
+function buildZhifuPaiMap(juData) {
+  const juChar = getPalaceNumChar(juData.juNum);
+  const pai = ZHIFU_PAI[juData.isYang ? '阳' : '阴'][juChar];
+  const keys = getSixJiaRoundKeys(juData.juNum, juData.isYang ? '阳' : '阴');
+  return Object.fromEntries(XUN_HEADS.map((xunHead, index) => [xunHead, `${keys[index]}${pai}`]));
+}
+
+function buildZhishiPaiMap(juData) {
+  const juChar = getPalaceNumChar(juData.juNum);
+  const base = juData.isYang ? rotateList(PALACE_NUMS, juChar) : reverseRotateList(PALACE_NUMS, juChar);
+  const longList = [...base, ...base, ...base].join('');
+  const keys = getSixJiaRoundKeys(juData.juNum, juData.isYang ? '阳' : '阴');
+
+  return Object.fromEntries(XUN_HEADS.map((xunHead, index) => {
+    const start = keys[index];
+    const startIndex = longList.indexOf(start);
+    return [xunHead, `${start}${longList.slice(startIndex + 1, startIndex + 12)}`];
+  }));
+}
+
+function getZhifuZhiShi(juData, hourGanZhi) {
+  const hourStem = hourGanZhi[0];
+  const hourStemIndex = GANS.indexOf(hourStem);
+  if (hourStemIndex === -1) {
+    throw new Error(`无法解析时干: ${hourGanZhi}`);
+  }
+
+  const xunHead = getHourXunHead(hourGanZhi);
+  const hiddenStem = getHiddenStemByXunHead(xunHead);
+  const zhifuPai = buildZhifuPaiMap(juData);
+  const zhishiPai = buildZhishiPaiMap(juData);
+  const zhifuValue = zhifuPai[xunHead];
+  const zhishiValue = zhishiPai[xunHead];
+
+  if (!zhifuValue || !zhishiValue) {
+    throw new Error(`无法获取值符值使排布: xunHead=${xunHead}`);
+  }
+
+  const zhiFuStarShort = ZHIFU_STAR_MAPPING[PALACE_NUMS.indexOf(zhifuValue[0])];
+  const zhiFuPalace = PALACE_NAME_BY_NUM[zhifuValue[hourStemIndex]];
+  const zhiShiDoorShort = ZHISHI_MAPPING[PALACE_NUMS.indexOf(zhishiValue[0])] === '中'
+    ? '死'
+    : ZHISHI_MAPPING[PALACE_NUMS.indexOf(zhishiValue[0])];
+  const zhiShiPalace = PALACE_NAME_BY_NUM[zhishiValue[hourStemIndex]];
+
+  return {
+    xunHead,
+    hiddenStem,
+    zhiFuStarShort,
+    zhiFuStar: FULL_STAR_NAME[zhiFuStarShort] || zhiFuStarShort,
+    zhiFuPalace,
+    zhiShiDoorShort,
+    zhiShiGate: FULL_DOOR_NAME[zhiShiDoorShort] || zhiShiDoorShort,
+    zhiShiPalace
+  };
+}
+
+function buildEarthPlate(juData) {
+  const juChar = getPalaceNumChar(juData.juNum);
+  const palaceSeq = rotateList(PALACE_NUMS, juChar);
+  const stems = EARTH_STEMS[juData.isYang ? '阳' : '阴'];
+  const earthByGua = {};
+
+  palaceSeq.forEach((palaceNum, index) => {
+    const palaceName = PALACE_NAME_BY_NUM[palaceNum];
+    earthByGua[palaceName] = stems[index];
+  });
+
+  return earthByGua;
+}
+
+function normalizeOuterPalace(palaceName) {
+  return palaceName === '中' ? '坤' : normalizeJieQiName(palaceName);
+}
+
+function buildStarPlate(juData, zhifuInfo) {
+  const rotatePalaces = juData.isYang ? CLOCKWISE_EIGHT_PALACES : [...CLOCKWISE_EIGHT_PALACES].reverse();
+  const startPalace = normalizeOuterPalace(zhifuInfo.zhiFuPalace);
+  const palaceOrder = rotateList(rotatePalaces, startPalace);
+  const starBase = juData.isYang ? STAR_ROTATE_BASE : [...STAR_ROTATE_BASE].reverse();
+  const startStar = zhifuInfo.zhiFuStarShort === '芮' ? '禽' : zhifuInfo.zhiFuStarShort;
+  const starOrder = rotateList(starBase, startStar);
+
+  return Object.fromEntries(palaceOrder.map((palaceName, index) => {
+    const shortName = starOrder[index];
+    return [palaceName, FULL_STAR_NAME[shortName] || shortName];
+  }));
+}
+
+function buildDoorPlate(juData, zhifuInfo) {
+  const rotatePalaces = juData.isYang ? CLOCKWISE_EIGHT_PALACES : [...CLOCKWISE_EIGHT_PALACES].reverse();
+  const startPalace = normalizeOuterPalace(zhifuInfo.zhiShiPalace);
+  const palaceOrder = rotateList(rotatePalaces, startPalace);
+  const doorBase = juData.isYang ? DOOR_ROTATE_BASE : [...DOOR_ROTATE_BASE].reverse();
+  const doorOrder = rotateList(doorBase, zhifuInfo.zhiShiDoorShort);
+
+  return Object.fromEntries(palaceOrder.map((palaceName, index) => [
+    palaceName,
+    FULL_DOOR_NAME[doorOrder[index]] || doorOrder[index]
+  ]));
+}
+
+function buildGodPlate(juData, zhifuInfo) {
+  const rotatePalaces = juData.isYang ? CLOCKWISE_EIGHT_PALACES : [...CLOCKWISE_EIGHT_PALACES].reverse();
+  const startPalace = normalizeOuterPalace(zhifuInfo.zhiFuPalace);
+  const palaceOrder = rotateList(rotatePalaces, startPalace);
+  const godOrder = GOD_ROTATE_BASE[juData.isYang ? '阳' : '阴'];
+
+  return Object.fromEntries(palaceOrder.map((palaceName, index) => [palaceName, godOrder[index]]));
+}
+
+function getStarShortFromFullName(fullName) {
+  return Object.entries(FULL_STAR_NAME).find(([, value]) => value === fullName)?.[0] || '';
+}
+
+function buildSkyStemPlate(earthByGua, starByGua) {
+  const skyStemByGua = {
+    '中': earthByGua['中']
+  };
+
+  Object.entries(starByGua).forEach(([palaceName, starFullName]) => {
+    const starShort = getStarShortFromFullName(starFullName);
+    const sourcePalace = STAR_HOME_PALACE[starShort] || palaceName;
+    skyStemByGua[palaceName] = earthByGua[sourcePalace] || earthByGua[palaceName] || '';
+  });
+
+  return skyStemByGua;
+}
+
+function convertPlateByGuaToIdMap(plateByGua, includeCenter = true) {
+  const result = {};
+  if (includeCenter) {
+    result[5] = plateByGua['中'] || '';
+  }
+  Object.entries(plateByGua).forEach(([palaceName, value]) => {
+    const palaceId = PALACE_ID_BY_NAME[palaceName];
+    if (palaceId && palaceId !== 5) {
+      result[palaceId] = value;
+    }
+  });
+  return result;
+}
+
+function getKongWangPalaces(hourXunKong) {
+  const kongWangPalaces = [];
+  if (!hourXunKong) {
+    return kongWangPalaces;
+  }
+  for (const zhi of hourXunKong) {
+    const palaceId = BRANCH_TO_PALACE[zhi];
+    if (palaceId && !kongWangPalaces.includes(palaceId)) {
+      kongWangPalaces.push(palaceId);
+    }
+  }
+  return kongWangPalaces;
+}
+
+function getMaXing(hourBranch) {
+  return BRANCH_HORSE_MAP[hourBranch] || '';
+}
+
+function buildAnGan(juData, hourStem, hiddenStem, renPan, zhiShiGate) {
+  const startStem = hourStem === '甲' ? hiddenStem : hourStem;
+  const startStemIndex = AN_GAN_SEQUENCE.indexOf(startStem);
+  if (startStemIndex === -1) {
+    throw new Error(`无法确定暗干起始时干: ${startStem}`);
+  }
+
+  let zhiShiPalace = Number(Object.entries(renPan).find(([, gate]) => gate === zhiShiGate)?.[0] || 0);
+  if (zhiShiPalace === 0) {
+    zhiShiPalace = 2;
+    console.warn('[Qimen] 未定位到值使门落宫，暗干起宫回退到坤二宫');
+  }
+
+  const anGan = {};
+  for (let i = 0; i < 9; i += 1) {
+    const stem = AN_GAN_SEQUENCE[(startStemIndex + i) % AN_GAN_SEQUENCE.length];
+    let palaceId;
+    if (juData.isYang) {
+      palaceId = ((zhiShiPalace - 1 + i) % 9) + 1;
+    } else {
+      let value = (zhiShiPalace - 1 - i) % 9;
+      if (value < 0) {
+        value += 9;
+      }
+      palaceId = value + 1;
+    }
+    anGan[palaceId] = stem;
+  }
+  return anGan;
+}
+
+export const getPaiPan = (date, method = 'chaibu') => {
+  try {
+    const ju = calculateJu(date, method);
+    if (ju.error) {
+      return ju;
+    }
+
+    const solar = Solar.fromDate(date);
+    const lunar = solar.getLunar();
+    const yearGanZhi = lunar.getYearInGanZhiExact?.() || lunar.getYearInGanZhi();
+    const monthGanZhi = lunar.getMonthInGanZhiExact?.() || lunar.getMonthInGanZhi();
+    const dayGanZhi = lunar.getDayInGanZhiExact?.() || lunar.getDayInGanZhi();
+    const hourGanZhi = lunar.getTimeInGanZhi();
+    const dayXunKong = lunar.getDayXunKong();
+    const hourXunKong = lunar.getTimeXunKong();
+    const hourStem = hourGanZhi[0];
+    const hourBranch = hourGanZhi[1];
+
+    const earthByGua = buildEarthPlate(ju);
+    const zhifuInfo = getZhifuZhiShi(ju, hourGanZhi);
+    const starByGua = buildStarPlate(ju, zhifuInfo);
+    const doorByGua = buildDoorPlate(ju, zhifuInfo);
+    const godByGua = buildGodPlate(ju, zhifuInfo);
+    const skyStemByGua = buildSkyStemPlate(earthByGua, starByGua);
+
+    const diPan = convertPlateByGuaToIdMap(earthByGua);
+    const tianPan = convertPlateByGuaToIdMap(starByGua);
+    const renPan = convertPlateByGuaToIdMap(doorByGua, false);
+    const shenPan = convertPlateByGuaToIdMap(godByGua, false);
+    const tianPanStems = convertPlateByGuaToIdMap(skyStemByGua);
+    const maXing = getMaXing(hourBranch);
+    const maXingPalace = BRANCH_TO_PALACE[maXing] || 0;
+    const kongWangPalaces = getKongWangPalaces(hourXunKong);
+    const anGan = buildAnGan(ju, hourStem, zhifuInfo.hiddenStem, renPan, zhifuInfo.zhiShiGate);
+
+    return {
+      ...ju,
+      method: normalizeMethod(method),
+      yearGanZhi,
+      monthGanZhi,
+      dayGanZhi,
+      hourGanZhi,
+      dayXunKong,
+      hourXunKong,
+      maXing,
+      maXingPalace,
+      kongWangPalaces,
+      anGan,
+      xun: zhifuInfo.xunHead,
+      zhiFuStar: zhifuInfo.zhiFuStar,
+      zhiShiGate: zhifuInfo.zhiShiGate,
+      zhiFuPalace: zhifuInfo.zhiFuPalace,
+      zhiShiPalace: zhifuInfo.zhiShiPalace,
+      diPan,
+      tianPan,
+      renPan,
+      shenPan,
+      tianPanStems
+    };
+  } catch (error) {
+    console.error('[Qimen] 排盘失败:', error);
+    return {
+      error: error.message || '奇门排盘失败'
+    };
+  }
 };
