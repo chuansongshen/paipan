@@ -2,6 +2,66 @@ import { Lunar, Solar } from 'lunar-javascript';
 
 const GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const LOGGER_PREFIX = '[BaZi]';
+const KUI_GANG_DAY_PILLARS = new Set(['庚辰', '庚戌', '壬辰', '戊戌']);
+const XUE_TANG_GAN_ZHI_MAP = {
+  '甲': '己亥',
+  '乙': '壬午',
+  '丙': '丙寅',
+  '丁': '丁酉',
+  '戊': '戊寅',
+  '己': '己酉',
+  '庚': '辛巳',
+  '辛': '甲子',
+  '壬': '甲申',
+  '癸': '乙卯'
+};
+
+const formatDurationText = (years, months, days) => {
+  const parts = [];
+
+  if (years > 0) parts.push(`${years}年`);
+  if (months > 0) parts.push(`${months}个月`);
+  if (days > 0) parts.push(`${days}天`);
+
+  return parts.length > 0 ? parts.join('') : '0天';
+};
+
+const getExactZodiac = (lunar, yearGanZhi) => {
+  if (typeof lunar.getYearShengXiaoExact === 'function') {
+    return lunar.getYearShengXiaoExact();
+  }
+
+  const zhi = yearGanZhi.substring(1);
+  const zodiacMap = {
+    '子': '鼠',
+    '丑': '牛',
+    '寅': '虎',
+    '卯': '兔',
+    '辰': '龙',
+    '巳': '蛇',
+    '午': '马',
+    '未': '羊',
+    '申': '猴',
+    '酉': '鸡',
+    '戌': '狗',
+    '亥': '猪'
+  };
+
+  return zodiacMap[zhi] || '';
+};
+
+const buildDaYunSolarPeriod = (startSolar, index) => {
+  const periodStartSolar = index === 0 ? startSolar : startSolar.nextYear(index * 10);
+  const periodEndSolar = periodStartSolar.nextYear(10).next(-1);
+
+  return {
+    start: periodStartSolar,
+    end: periodEndSolar
+  };
+};
+
+const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
 
 // Get Na Yin (纳音) for a Gan-Zhi pair
 const getNaYin = (ganZhi) => {
@@ -170,7 +230,7 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
   if (taiJiMap[dayGan]?.includes(zhi)) shenSha.push('太极贵人');
   if (taiJiMap[yearGan]?.includes(zhi)) shenSha.push('太极贵人');
 
-  // 天德贵人 (Tian De) - Month Zhi
+  // 天德贵人按月支查，常见口诀为“子月巳、丑月庚、寅月丁、卯月申……”。
   const tianDeMap = {
     '子': '巳', '丑': '庚', '寅': '丁', '卯': '申', 
     '辰': '壬', '巳': '辛', '午': '亥', '未': '甲', 
@@ -226,13 +286,10 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
   if (hongYanMap[dayGan] === zhi) shenSha.push('红艳');
 
   // 学堂 (Xue Tang) - Chang Sheng of Na Yin Element (Day/Year)
-  // Simplified: Based on Stem
-  // Jia-Hai, Yi-Wu, Bing-Yin, Ding-You, Wu-Yin, Ji-You, Geng-Si, Xin-Zi, Ren-Shen, Gui-Mao
-  const xueTangMap = {
-    '甲': '亥', '乙': '午', '丙': '寅', '丁': '酉', '戊': '寅',
-    '己': '酉', '庚': '巳', '辛': '子', '壬': '申', '癸': '卯'
-  };
-  if (xueTangMap[dayGan] === zhi || xueTangMap[yearGan] === zhi) shenSha.push('学堂');
+  // 学堂常规查法以完整干支判断，避免只按地支造成误判。
+  if (XUE_TANG_GAN_ZHI_MAP[dayGan] === ganZhi || XUE_TANG_GAN_ZHI_MAP[yearGan] === ganZhi) {
+    shenSha.push('学堂');
+  }
 
   // 驿马 (Yi Ma) - Day Zhi or Year Zhi
   const yiMaMap = {
@@ -271,10 +328,10 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
     '甲': '巳', '乙': '午', '丙': '申', '丁': '酉', '戊': '申',
     '己': '酉', '庚': '亥', '辛': '子', '壬': '寅', '癸': '卯'
   };
-  if (wenChangMap[dayGan] === zhi) shenSha.push('文昌贵人');
+  if (wenChangMap[dayGan] === zhi || wenChangMap[yearGan] === zhi) shenSha.push('文昌贵人');
 
-  // 魁罡 (Kui Gang) - Day Pillar usually
-  if (['壬辰', '壬戌', '庚辰', '庚戌'].includes(ganZhi)) shenSha.push('魁罡');
+  // 魁罡按常规以日柱为主，不向其他柱扩散。
+  if (ganZhi === dayGanZhi && KUI_GANG_DAY_PILLARS.has(dayGanZhi)) shenSha.push('魁罡');
 
   // 十恶大败 (Shi E Da Bai) - Day Pillar
   const shiEMap = ['甲辰', '乙巳', '丙申', '丁亥', '戊戌', '己丑', '庚辰', '辛巳', '壬申', '癸亥'];
@@ -517,140 +574,162 @@ const getTaiXi = (dayGanZhi) => {
 };
 
 export function getBaZiPaiPan(date, birthYear = 2000, gender = '男') {
-  const lunar = Lunar.fromDate(date);
-  const solar = Solar.fromDate(date);
-  const eightChar = lunar.getEightChar();
-  
-  // Basic info
-  const yearGanZhi = eightChar.getYear();
-  const monthGanZhi = eightChar.getMonth();
-  const dayGanZhi = eightChar.getDay();
-  const hourGanZhi = eightChar.getTime();
-  
-  const dayStem = dayGanZhi[0];
-  
-  // Build pillar data
-  const buildPillar = (ganZhi, pillarName) => {
-    const gan = ganZhi[0];
-    const zhi = ganZhi.substring(1);
-    const hidden = getHiddenStems(zhi);
-    const tenGod = pillarName !== '日柱' ? getTenGod(dayStem, gan) : '日主';
+  try {
+    if (!isValidDate(date)) {
+      throw new Error('出生时间无效');
+    }
+
+    const lunar = Lunar.fromDate(date);
+    const solar = Solar.fromDate(date);
+    const eightChar = lunar.getEightChar();
     
-    // Get element for gan
-    const ganIdx = GAN.indexOf(gan);
-    const elements = ['木', '火', '土', '金', '水'];
-    const ganElement = elements[Math.floor(ganIdx / 2)];
-    const ganYinYang = ganIdx % 2 === 0 ? '阳' : '阴';
+    // Basic info
+    const yearGanZhi = eightChar.getYear();
+    const monthGanZhi = eightChar.getMonth();
+    const dayGanZhi = eightChar.getDay();
+    const hourGanZhi = eightChar.getTime();
     
-    // Get element for zhi 
-    const zhiIdx = ZHI.indexOf(zhi);
-    const zhiElements = ['水', '土', '木', '木', '土', '火', '火', '土', '金', '金', '土', '水'];
-    const zhiElement = zhiElements[zhiIdx];
-    const zhiYinYang = zhiIdx % 2 === 0 ? '阳' : '阴';
+    const dayStem = dayGanZhi[0];
     
-    // Build hidden stems with ten gods
-    const cangGan = {};
-    Object.entries(hidden).forEach(([type, stem]) => {
-      cangGan[type] = {
-        '天干': stem,
-        '十神': getTenGod(dayStem, stem)
+    // Build pillar data
+    const buildPillar = (ganZhi, pillarName) => {
+      const gan = ganZhi[0];
+      const zhi = ganZhi.substring(1);
+      const hidden = getHiddenStems(zhi);
+      const tenGod = pillarName !== '日柱' ? getTenGod(dayStem, gan) : '日主';
+      
+      // Get element for gan
+      const ganIdx = GAN.indexOf(gan);
+      const elements = ['木', '火', '土', '金', '水'];
+      const ganElement = elements[Math.floor(ganIdx / 2)];
+      const ganYinYang = ganIdx % 2 === 0 ? '阳' : '阴';
+      
+      // Get element for zhi 
+      const zhiIdx = ZHI.indexOf(zhi);
+      const zhiElements = ['水', '土', '木', '木', '土', '火', '火', '土', '金', '金', '土', '水'];
+      const zhiElement = zhiElements[zhiIdx];
+      const zhiYinYang = zhiIdx % 2 === 0 ? '阳' : '阴';
+      
+      // Build hidden stems with ten gods
+      const cangGan = {};
+      Object.entries(hidden).forEach(([type, stem]) => {
+        cangGan[type] = {
+          '天干': stem,
+          '十神': getTenGod(dayStem, stem)
+        };
+      });
+
+      // Calculate Shen Sha for this pillar
+      const shenSha = getShenSha(ganZhi, dayGanZhi, yearGanZhi, monthGanZhi);
+      
+      // Xun and Kong Wang
+      const xunInfo = getXun(ganZhi);
+      
+      // Star Luck (Day Stem vs Pillar Branch)
+      const starLuck = getChangSheng(dayStem, zhi);
+      
+      // Self Sitting (Pillar Stem vs Pillar Branch)
+      const selfSitting = getChangSheng(gan, zhi);
+
+      return {
+        '干支': ganZhi,
+        '天干': {
+          '天干': gan,
+          '五行': ganElement,
+          '阴阳': ganYinYang,
+          '十神': tenGod
+        },
+        '地支': {
+          '地支': zhi,
+          '五行': zhiElement,
+          '阴阳': zhiYinYang,
+          '藏干': cangGan
+        },
+        '纳音': getNaYin(ganZhi),
+        '旬': xunInfo.xun,
+        '空亡': xunInfo.kongWang,
+        '星运': starLuck,
+        '自坐': selfSitting,
+        '神煞': shenSha
+      };
+    };
+    
+    const yearPillar = buildPillar(yearGanZhi, '年柱');
+    const monthPillar = buildPillar(monthGanZhi, '月柱');
+    const dayPillar = buildPillar(dayGanZhi, '日柱');
+    const hourPillar = buildPillar(hourGanZhi, '时柱');
+
+    // Calculate Interactions
+    const ganZhis = [yearGanZhi, monthGanZhi, dayGanZhi, hourGanZhi];
+    const interactions = getInteractions(ganZhis);
+    
+    // Get Da Yun (Big Luck)
+    const yun = eightChar.getYun(gender === '男' ? 1 : 0);
+    const startYear = yun.getStartYear();
+    const startMonth = yun.getStartMonth();
+    const startDay = yun.getStartDay();
+    const startSolar = yun.getStartSolar();
+    const daYunList = yun.getDaYun();
+    const firstDaYun = daYunList[1] || null;
+    
+    // Note: The library's getDaYun() returns the first item as empty (current period placeholder).
+    // We skip it and start from index 1 to get the actual Da Yun periods.
+    const daYun = daYunList.slice(1, 11).map((dy, idx) => {
+      const ganZhi = dy.getGanZhi();
+      const gan = ganZhi[0];
+      const zhi = ganZhi.substring(1);
+      const hidden = getHiddenStems(zhi);
+      const solarPeriod = buildDaYunSolarPeriod(startSolar, idx);
+      
+      return {
+        '干支': ganZhi,
+        '开始年份': solarPeriod.start.getYear(),
+        '结束年份': solarPeriod.end.getYear(),
+        '开始日期': solarPeriod.start.toYmd(),
+        '结束日期': solarPeriod.end.toYmd(),
+        '天干十神': getTenGod(dayStem, gan),
+        '地支藏干': Object.values(hidden),
+        '地支十神': Object.values(hidden).map(stem => getTenGod(dayStem, stem)),
+        '开始年龄': dy.getStartAge(),
+        '结束年龄': dy.getEndAge()
       };
     });
-
-    // Calculate Shen Sha for this pillar
-    const shenSha = getShenSha(ganZhi, dayGanZhi, yearGanZhi, monthGanZhi);
-    
-    // Xun and Kong Wang
-    const xunInfo = getXun(ganZhi);
-    
-    // Star Luck (Day Stem vs Pillar Branch)
-    const starLuck = getChangSheng(dayStem, zhi);
-    
-    // Self Sitting (Pillar Stem vs Pillar Branch)
-    const selfSitting = getChangSheng(gan, zhi);
-
-    return {
-      '干支': ganZhi,
-      '天干': {
-        '天干': gan,
-        '五行': ganElement,
-        '阴阳': ganYinYang,
-        '十神': tenGod
-      },
-      '地支': {
-        '地支': zhi,
-        '五行': zhiElement,
-        '阴阳': zhiYinYang,
-        '藏干': cangGan
-      },
-      '纳音': getNaYin(ganZhi),
-      '旬': xunInfo.xun,
-      '空亡': xunInfo.kongWang,
-      '星运': starLuck,
-      '自坐': selfSitting,
-      '神煞': shenSha
-    };
-  };
-  
-  const yearPillar = buildPillar(yearGanZhi, '年柱');
-  const monthPillar = buildPillar(monthGanZhi, '月柱');
-  const dayPillar = buildPillar(dayGanZhi, '日柱');
-  const hourPillar = buildPillar(hourGanZhi, '时柱');
-
-  // Calculate Interactions
-  const ganZhis = [yearGanZhi, monthGanZhi, dayGanZhi, hourGanZhi];
-  const interactions = getInteractions(ganZhis);
-  
-  // Get Da Yun (Big Luck)
-  const yun = eightChar.getYun(gender === '男' ? 1 : 0);
-  const startAge = yun.getStartYear(); // This returns the starting age in years
-  const daYunList = yun.getDaYun();
-  
-  // Note: The library's getDaYun() returns the first item as empty (current period placeholder).
-  // We skip it and start from index 1 to get the actual Da Yun periods.
-  const daYun = daYunList.slice(1, 11).map((dy, idx) => {
-    const ganZhi = dy.getGanZhi();
-    const gan = ganZhi[0];
-    const zhi = ganZhi.substring(1);
-    const hidden = getHiddenStems(zhi);
-    const ageStart = startAge + idx * 10;
-    const ageEnd = ageStart + 9;
-    const yearStart = birthYear + ageStart;
-    const yearEnd = birthYear + ageEnd;
     
     return {
-      '干支': ganZhi,
-      '开始年份': yearStart,
-      '结束年份': yearEnd,
-      '天干十神': getTenGod(dayStem, gan),
-      '地支藏干': Object.values(hidden),
-      '地支十神': Object.values(hidden).map(stem => getTenGod(dayStem, stem)),
-      '开始年龄': ageStart,
-      '结束年龄': ageEnd
+      '性别': gender,
+      '阳历': solar.toYmdHms(),
+      '农历': lunar.toString(),
+      '八字': `${yearGanZhi} ${monthGanZhi} ${dayGanZhi} ${hourGanZhi}`,
+      '生肖': getExactZodiac(lunar, yearGanZhi),
+      '日主': dayStem,
+      '年柱': yearPillar,
+      '月柱': monthPillar,
+      '日柱': dayPillar,
+      '时柱': hourPillar,
+      '胎元': eightChar.getTaiYuan(),
+      '胎息': typeof eightChar.getTaiXi === 'function' ? eightChar.getTaiXi() : getTaiXi(dayGanZhi),
+      '命宫': eightChar.getMingGong(),
+      '身宫': eightChar.getShenGong(),
+      '大运': {
+        '起运年龄': startYear,
+        '起运月数': startMonth,
+        '起运天数': startDay,
+        '起运公历': startSolar.toYmd(),
+        '起运描述': formatDurationText(startYear, startMonth, startDay),
+        '首运年龄': firstDaYun ? firstDaYun.getStartAge() : startYear,
+        '大运': daYun
+      },
+      '刑冲合会': interactions,
+      dateStr: date.toLocaleString(),
+      birthYear: isValidDate(date) ? date.getFullYear() : birthYear
     };
-  });
-  
-  return {
-    '性别': gender,
-    '阳历': solar.toYmdHms(),
-    '农历': lunar.toString(),
-    '八字': `${yearGanZhi} ${monthGanZhi} ${dayGanZhi} ${hourGanZhi}`,
-    '生肖': lunar.getYearShengXiao(),
-    '日主': dayStem,
-    '年柱': yearPillar,
-    '月柱': monthPillar,
-    '日柱': dayPillar,
-    '时柱': hourPillar,
-    '胎元': eightChar.getTaiYuan(),
-    '胎息': getTaiXi(dayGanZhi),
-    '命宫': eightChar.getMingGong(),
-    '身宫': eightChar.getShenGong(),
-    '大运': {
-      '起运年龄': startAge,
-      '大运': daYun
-    },
-    '刑冲合会': interactions,
-    dateStr: date.toLocaleString(),
-    birthYear
-  };
+  } catch (error) {
+    console.error(`${LOGGER_PREFIX} 八字排盘失败`, error);
+
+    return {
+      error: error instanceof Error ? error.message : '八字排盘失败',
+      '性别': gender,
+      dateStr: isValidDate(date) ? date.toLocaleString() : ''
+    };
+  }
 }

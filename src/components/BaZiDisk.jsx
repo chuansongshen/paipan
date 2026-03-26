@@ -7,7 +7,7 @@ const BaZiDisk = ({ data }) => {
   if (!data) return <div style={{ color: '#999' }}>暂无数据</div>;
   if (data.error) return <div style={{ color: '#ff4d4f' }}>错误: {data.error}</div>;
 
-  const { 性别, 阳历, 农历, 八字, 生肖, 日主, 年柱, 月柱, 日柱, 时柱, 胎元, 命宫, 身宫, 大运 } = data;
+  const { 性别, 阳历, 农历, 八字, 生肖, 日主, 年柱, 月柱, 日柱, 时柱, 胎元, 胎息, 命宫, 身宫, 大运 } = data;
 
   const renderPillar = (pillar, title) => (
     <Card size="small" style={{ height: '100%' }}>
@@ -67,7 +67,7 @@ const BaZiDisk = ({ data }) => {
   // 大运表格列配置
   const daYunColumns = [
     { title: '干支', dataIndex: '干支', key: '干支', render: (text) => <Text strong style={{ color: '#4338ca' }}>{text}</Text> },
-    { title: '年份', key: 'year', render: (_, record) => `${record.开始年份}-${record.结束年份}` },
+    { title: '时间', key: 'period', render: (_, record) => `${record.开始日期} 至 ${record.结束日期}` },
     { title: '年龄', key: 'age', render: (_, record) => `${record.开始年龄}-${record.结束年龄}岁` },
     { title: '天干十神', dataIndex: '天干十神', key: '天干十神', render: (text) => <Tag color="purple">{text}</Tag> },
     { 
@@ -134,6 +134,7 @@ const BaZiDisk = ({ data }) => {
           <Card title="其他信息" size="small" style={{ height: '100%' }}>
             <Descriptions column={1} size="small">
               <Descriptions.Item label="胎元">{胎元}</Descriptions.Item>
+              <Descriptions.Item label="胎息">{胎息}</Descriptions.Item>
               <Descriptions.Item label="命宫">{命宫}</Descriptions.Item>
               <Descriptions.Item label="身宫">{身宫}</Descriptions.Item>
             </Descriptions>
@@ -143,7 +144,7 @@ const BaZiDisk = ({ data }) => {
 
       {/* Da Yun (Big Luck) */}
       {大运 && (
-        <Card title={`大运 (起运年龄: ${大运.起运年龄}岁)`} size="small">
+        <Card title={`大运 (起运: ${大运.起运描述}，${大运.起运公历})`} size="small">
           <Table 
             dataSource={大运.大运.map((item, idx) => ({ ...item, key: idx }))}
             columns={daYunColumns}

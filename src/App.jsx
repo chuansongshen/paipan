@@ -576,12 +576,12 @@ function App() {
       }
       
       text += `【其他】\n`;
-      text += `胎元: ${panData.胎元}  命宫:${panData.命宫}  身宫: ${panData.身宫}\n\n`;
+      text += `胎元: ${panData.胎元}  胎息: ${panData.胎息}  命宫:${panData.命宫}  身宫: ${panData.身宫}\n\n`;
       
       if (panData.大运) {
-        text += `【大运】(起运年龄: ${panData.大运.起运年龄}岁)\n`;
+        text += `【大运】(起运: ${panData.大运.起运描述}，${panData.大运.起运公历})\n`;
         panData.大运.大运.forEach(dy => {
-          text += `${dy.干支} (${dy.开始年份}-${dy.结束年份}, ${dy.开始年龄}-${dy.结束年龄}岁) `;
+          text += `${dy.干支} (${dy.开始日期}-${dy.结束日期}, ${dy.开始年龄}-${dy.结束年龄}岁) `;
           text += `天干[${dy.天干十神}] `;
           const hidden = dy.地支藏干.map((gan, i) => `${gan}(${dy.地支十神[i]})`).join(' ');
           text += `地支藏干[${hidden}]\n`;
