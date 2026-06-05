@@ -62,5 +62,7 @@ node test_shensha.js
 - 常量集中于 `src/utils/constants.js`，干支数据在 `src/utils/zhizhi_data.js`。
 - 代码风格：2 空格缩进、分号结尾、优先单引号；组件 `PascalCase`，工具模块小写，常量 `UPPER_SNAKE_CASE`。
 - 日志使用作用域前缀，如 `[Qimen]`、`[DaLiuRen]`；算法边界须有 `try/catch`，禁止静默失败。
-- 每次修复缺陷须补充或更新对应领域的回归测试脚本。
+- 每次修复缺陷须补充或更新对应领域的回归测试脚本（使用 `node:assert/strict`，无测试框架）。
 - 提交信息遵循 `feat(scope):` / `fix(scope):` 格式，每次提交只含一类逻辑变更。
+- `ZiWeiDisk` 组件体积大，在 `App.jsx` 中通过 `React.lazy` 按需加载，避免常驻主包。
+- Vite `base` 设为 `'./'`，以支持 GitHub Pages 子路径部署，修改静态资源路径时须保持相对路径。

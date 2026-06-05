@@ -16,6 +16,115 @@ const XUE_TANG_GAN_ZHI_MAP = {
   '壬': '甲申',
   '癸': '乙卯'
 };
+const CI_GUAN_GAN_ZHI_MAP = {
+  '甲': '庚寅',
+  '乙': '辛卯',
+  '丙': '乙巳',
+  '丁': '戊午',
+  '戊': '丁巳',
+  '己': '庚午',
+  '庚': '壬申',
+  '辛': '癸酉',
+  '壬': '癸亥',
+  '癸': '壬戌'
+};
+const DE_XIU_STEMS_BY_MONTH_ZHI = {
+  '寅': ['丙', '丁', '戊', '癸'],
+  '午': ['丙', '丁', '戊', '癸'],
+  '戌': ['丙', '丁', '戊', '癸'],
+  '申': ['壬', '癸', '戊', '己', '丙', '辛', '甲'],
+  '子': ['壬', '癸', '戊', '己', '丙', '辛', '甲'],
+  '辰': ['壬', '癸', '戊', '己', '丙', '辛', '甲'],
+  '巳': ['庚', '辛', '乙'],
+  '酉': ['庚', '辛', '乙'],
+  '丑': ['庚', '辛', '乙'],
+  '亥': ['甲', '乙', '丁', '壬'],
+  '卯': ['甲', '乙', '丁', '壬'],
+  '未': ['甲', '乙', '丁', '壬']
+};
+const SAN_QI_STEM_GROUPS = [
+  ['甲', '戊', '庚'],
+  ['乙', '丙', '丁'],
+  ['壬', '癸', '辛']
+];
+const TIAN_SHE_DAY_BY_MONTH_ZHI = {
+  '寅': '戊寅',
+  '卯': '戊寅',
+  '辰': '戊寅',
+  '巳': '甲午',
+  '午': '甲午',
+  '未': '甲午',
+  '申': '戊申',
+  '酉': '戊申',
+  '戌': '戊申',
+  '亥': '甲子',
+  '子': '甲子',
+  '丑': '甲子'
+};
+const TIAN_CHU_ZHI_BY_GAN = {
+  '甲': '巳',
+  '乙': '午',
+  '丙': '巳',
+  '丁': '午',
+  '戊': '申',
+  '己': '酉',
+  '庚': '亥',
+  '辛': '子',
+  '壬': '寅',
+  '癸': '卯'
+};
+const YIN_CHA_YANG_CUO_DAY_PILLARS = new Set([
+  '丙子',
+  '丁丑',
+  '戊寅',
+  '辛卯',
+  '壬辰',
+  '癸巳',
+  '丙午',
+  '丁未',
+  '戊申',
+  '辛酉',
+  '壬戌',
+  '癸亥'
+]);
+const JIN_SHEN_PILLARS = new Set(['乙丑', '己巳', '癸酉']);
+
+const getZhiOffset = (zhi, offset) => {
+  const index = ZHI.indexOf(zhi);
+  if (index === -1) return '';
+
+  return ZHI[(index + offset + 12) % 12];
+};
+
+const isYangYearZhi = (yearZhi) => {
+  const index = ZHI.indexOf(yearZhi);
+  return index !== -1 && index % 2 === 0;
+};
+
+const isYangMaleOrYinFemale = (yearZhi, gender) => {
+  const yangYear = isYangYearZhi(yearZhi);
+  return (gender === '男' && yangYear) || (gender === '女' && !yangYear);
+};
+
+const getYuanChenZhi = (yearZhi, gender) => {
+  const clashZhi = getZhiOffset(yearZhi, 6);
+  if (!clashZhi) return '';
+
+  return getZhiOffset(clashZhi, isYangMaleOrYinFemale(yearZhi, gender) ? 1 : -1);
+};
+
+const getGouJiaoZhi = (yearZhi, gender) => {
+  const forward = getZhiOffset(yearZhi, 3);
+  const backward = getZhiOffset(yearZhi, -3);
+
+  if (!forward || !backward) {
+    return { gou: '', jiao: '' };
+  }
+
+  return isYangMaleOrYinFemale(yearZhi, gender)
+    ? { gou: forward, jiao: backward }
+    : { gou: backward, jiao: forward };
+};
 
 const formatDurationText = (years, months, days) => {
   const parts = [];
@@ -197,10 +306,12 @@ const getXun = (ganZhi) => {
 };
 
 // Shen Sha Helpers
-const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
+const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi, allGanZhis = [], gender = '男', pillarName = '') => {
   const shenSha = [];
   const gan = ganZhi[0];
   const zhi = ganZhi.substring(1);
+  const allGans = allGanZhis.map(item => item[0]);
+  const allZhis = allGanZhis.map(item => item.substring(1));
   
   const dayGan = dayGanZhi[0];
   const dayZhi = dayGanZhi.substring(1);
@@ -258,7 +369,14 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
     '亥': '甲', '卯': '甲', '未': '甲',
     '巳': '庚', '酉': '庚', '丑': '庚'
   };
-  if (yueDeMap[monthZhi] === gan) shenSha.push('月德贵人');
+  const yueDe = yueDeMap[monthZhi];
+  if (yueDe === gan) shenSha.push('月德贵人');
+
+  const yueDeHe = getCombine(yueDe);
+  if (yueDeHe === gan) shenSha.push('月德合');
+
+  // 德秀贵人按月令三合局取德、秀天干，命中当前柱天干即标出。
+  if (DE_XIU_STEMS_BY_MONTH_ZHI[monthZhi]?.includes(gan)) shenSha.push('德秀贵人');
 
   // 福星贵人 (Fu Xing) - Day Gan or Year Gan
   const fuXingMap = {
@@ -289,6 +407,10 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
   // 学堂常规查法以完整干支判断，避免只按地支造成误判。
   if (XUE_TANG_GAN_ZHI_MAP[dayGan] === ganZhi || XUE_TANG_GAN_ZHI_MAP[yearGan] === ganZhi) {
     shenSha.push('学堂');
+  }
+
+  if (CI_GUAN_GAN_ZHI_MAP[dayGan] === ganZhi || CI_GUAN_GAN_ZHI_MAP[yearGan] === ganZhi) {
+    shenSha.push('词馆');
   }
 
   // 驿马 (Yi Ma) - Day Zhi or Year Zhi
@@ -330,12 +452,27 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
   };
   if (wenChangMap[dayGan] === zhi || wenChangMap[yearGan] === zhi) shenSha.push('文昌贵人');
 
+  const sanQiGroup = SAN_QI_STEM_GROUPS.find(group => group.every(stem => allGans.includes(stem)));
+  if (sanQiGroup?.includes(gan)) shenSha.push('三奇贵人');
+
+  if (TIAN_SHE_DAY_BY_MONTH_ZHI[monthZhi] === dayGanZhi && ganZhi === dayGanZhi) {
+    shenSha.push('天赦');
+  }
+
   // 魁罡按常规以日柱为主，不向其他柱扩散。
   if (ganZhi === dayGanZhi && KUI_GANG_DAY_PILLARS.has(dayGanZhi)) shenSha.push('魁罡');
 
   // 十恶大败 (Shi E Da Bai) - Day Pillar
   const shiEMap = ['甲辰', '乙巳', '丙申', '丁亥', '戊戌', '己丑', '庚辰', '辛巳', '壬申', '癸亥'];
   if (shiEMap.includes(ganZhi) && ganZhi === dayGanZhi) shenSha.push('十恶大败');
+
+  if (YIN_CHA_YANG_CUO_DAY_PILLARS.has(dayGanZhi) && ganZhi === dayGanZhi) {
+    shenSha.push('阴差阳错');
+  }
+
+  if ((pillarName === '日柱' || pillarName === '时柱') && JIN_SHEN_PILLARS.has(ganZhi)) {
+    shenSha.push('金神');
+  }
 
   // 将星 (Jiang Xing) - Day/Year Zhi
   const jiangXingMap = {
@@ -422,6 +559,10 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
   if (jinYuMap[dayGan] === zhi) shenSha.push('金舆');
   if (jinYuMap[yearGan] === zhi) shenSha.push('金舆');
 
+  if (TIAN_CHU_ZHI_BY_GAN[dayGan] === zhi || TIAN_CHU_ZHI_BY_GAN[yearGan] === zhi) {
+    shenSha.push('天厨贵人');
+  }
+
   // 天医星 (Tian Yi Xing) - Month Zhi
   // Prev month branch
   const tianYiXingMap = {
@@ -444,6 +585,19 @@ const getShenSha = (ganZhi, dayGanZhi, yearGanZhi, monthGanZhi) => {
     '午': '戌', '未': '酉', '申': '申', '酉': '未', '戌': '午', '亥': '巳'
   };
   if (piTouMap[yearZhi] === zhi) shenSha.push('披头');
+
+  if (getYuanChenZhi(yearZhi, gender) === zhi) shenSha.push('元辰');
+
+  const gouJiao = getGouJiaoZhi(yearZhi, gender);
+  if (gouJiao.gou === zhi) shenSha.push('勾煞');
+  if (gouJiao.jiao === zhi) shenSha.push('绞煞');
+
+  if (allZhis.includes('戌') && allZhis.includes('亥') && ['戌', '亥'].includes(zhi)) {
+    shenSha.push('天罗');
+  }
+  if (allZhis.includes('辰') && allZhis.includes('巳') && ['辰', '巳'].includes(zhi)) {
+    shenSha.push('地网');
+  }
 
   return [...new Set(shenSha)];
 };
@@ -590,6 +744,7 @@ export function getBaZiPaiPan(date, birthYear = 2000, gender = '男') {
     const hourGanZhi = eightChar.getTime();
     
     const dayStem = dayGanZhi[0];
+    const ganZhis = [yearGanZhi, monthGanZhi, dayGanZhi, hourGanZhi];
     
     // Build pillar data
     const buildPillar = (ganZhi, pillarName) => {
@@ -620,7 +775,7 @@ export function getBaZiPaiPan(date, birthYear = 2000, gender = '男') {
       });
 
       // Calculate Shen Sha for this pillar
-      const shenSha = getShenSha(ganZhi, dayGanZhi, yearGanZhi, monthGanZhi);
+      const shenSha = getShenSha(ganZhi, dayGanZhi, yearGanZhi, monthGanZhi, ganZhis, gender, pillarName);
       
       // Xun and Kong Wang
       const xunInfo = getXun(ganZhi);
@@ -660,7 +815,6 @@ export function getBaZiPaiPan(date, birthYear = 2000, gender = '男') {
     const hourPillar = buildPillar(hourGanZhi, '时柱');
 
     // Calculate Interactions
-    const ganZhis = [yearGanZhi, monthGanZhi, dayGanZhi, hourGanZhi];
     const interactions = getInteractions(ganZhis);
     
     // Get Da Yun (Big Luck)
